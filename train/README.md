@@ -22,9 +22,9 @@
 
 # Overview
 
-YOLOv8 is a powerful neural network architecture which provides both decent accuracy of predictions and high speed of inference. In comparison to YOLOv5, YOLOv8 uses anchor-free head (it allows to speed up non-max suppression (NMS) process), new backbone and new loss functions.
+YOLOv5 is a powerful neural network architecture which provides both decent accuracy of predictions and high speed of inference.
 
-This app allows to train YOLOv8 model on selected dataset. You can define model checkpoint, data split method, training hyperparameters, data augmentation and many other features related to model training. App supports both models pretrained on COCO and models trained on custom datasets. Supported task types are object detection, instance segmentation and pose estimation.
+This app allows to train YOLOv5 model on selected dataset. You can define model checkpoint, data split method, training hyperparameters, data augmentation and many other features related to model training. App supports both models pretrained on COCO and models trained on custom datasets. Supported task types are object detection, instance segmentation and pose estimation.
 
 🔥🔥🔥 Check out our [youtube tutorial](https://youtu.be/Rsr8xWJ6s9I) and the [complete guide in our blog](https://supervisely.com/blog/train-yolov8-on-custom-data-no-code/):   
 
@@ -51,4 +51,4 @@ https://user-images.githubusercontent.com/91027877/249008934-293b3176-d5f3-4edb-
 
 # Acknowledgment
 
-This app is based on the great work `YOLOv8` ([github](https://github.com/ultralytics/ultralytics)). ![GitHub Org's stars](https://img.shields.io/github/stars/ultralytics/ultralytics?style=social)
+This app is based on the great work `YOLOv5` ([github](https://github.com/ultralytics/ultralytics)). ![GitHub Org's stars](https://img.shields.io/github/stars/ultralytics/ultralytics?style=social)
