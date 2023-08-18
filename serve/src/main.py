@@ -33,43 +33,6 @@ det_models_data = sly.json.load_json_file(det_models_data_path)
 
 
 class YOLOv5Model(sly.nn.inference.ObjectDetection):
-    def add_content_to_pretrained_tab(self, gui):
-        task_type_items = [
-            RadioGroup.Item(value="object detection"),
-        ]
-        self.task_type_select = RadioGroup(items=task_type_items, direction="vertical")
-        task_type_select_f = Field(
-            content=self.task_type_select,
-            title="Task type",
-        )
-
-        @self.task_type_select.value_changed
-        def change_table(task_type):
-            models_table_columns = [key for key in det_models_data[0].keys()]
-            models_table_subtitles = [None] * len(models_table_columns)
-            models_table_rows = []
-            for element in det_models_data:
-                models_table_rows.append(list(element.values()))
-            gui._models_table.set_data(
-                columns=models_table_columns,
-                rows=models_table_rows,
-                subtitles=models_table_subtitles,
-            )
-            gui._models = det_models_data
-
-        return task_type_select_f
-
-    def add_content_to_custom_tab(self, gui):
-        task_type_items = [
-            RadioGroup.Item(value="object detection"),
-        ]
-        self.custom_task_type_select = RadioGroup(items=task_type_items, direction="vertical")
-        custom_task_type_select_f = Field(
-            content=self.custom_task_type_select,
-            title="Task type",
-        )
-        return custom_task_type_select_f
-
     def get_models(self):
         return det_models_data
 
@@ -80,10 +43,7 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
     ):
         model_source = self.gui.get_model_source()
         if model_source == "Pretrained models":
-            self.task_type = self.task_type_select.get_value()
             selected_model = self.gui.get_checkpoint_info()["Model"]
-            if selected_model.endswith("det"):
-                selected_model = selected_model[:-4]
             model_filename = selected_model.lower() + ".pt"
             weights_url = (
                 f"https://github.com/ultralytics/assets/releases/download/v0.0.0/{model_filename}"
@@ -95,7 +55,6 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
                     dst_path=weights_dst_path,
                 )
         elif model_source == "Custom models":
-            self.task_type = self.custom_task_type_select.get_value()
             custom_link = self.gui.get_custom_link()
             weights_file_name = os.path.basename(custom_link)
             weights_dst_path = os.path.join(model_dir, weights_file_name)
@@ -106,6 +65,7 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
                 )
         self.model = YOLO(weights_dst_path)
         self.class_names = list(self.model.names.values())
+        self.task_type = "object detection"
         if device.startswith("cuda"):
             if device == "cuda":
                 self.device = 0
@@ -132,30 +92,25 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
     @property
     def model_meta(self) -> ProjectMeta:
         if self._model_meta is None:
-            if self.task_type in ["object detection"]:
-                colors = get_predefined_colors(len(self.get_classes()))
-                classes = []
-                for name, rgb in zip(self.get_classes(), colors):
-                    if self.task_type == "object detection":
-                        classes.append(ObjClass(name, sly.Rectangle, rgb))
-                    else:
-                        classes.append(ObjClass(name, sly.Bitmap, rgb))
-                self._model_meta = ProjectMeta(classes)
-                self._get_confidence_tag_meta()
+            colors = get_predefined_colors(len(self.get_classes()))
+            classes = []
+            for name, rgb in zip(self.get_classes(), colors):
+                classes.append(ObjClass(name, sly.Rectangle, rgb))
+            self._model_meta = ProjectMeta(classes)
+            self._get_confidence_tag_meta()
         return self._model_meta
 
     def _create_label(self, dto: PredictionBBox):
-        if self.task_type == "object detection":
-            obj_class = self.model_meta.get_obj_class(dto.class_name)
-            if obj_class is None:
-                raise KeyError(
-                    f"Class {dto.class_name} not found in model classes {self.get_classes()}"
-                )
-            geometry = sly.Rectangle(*dto.bbox_tlbr)
-            tags = []
-            if dto.score is not None:
-                tags.append(sly.Tag(self._get_confidence_tag_meta(), dto.score))
-            label = sly.Label(geometry, obj_class, tags)
+        obj_class = self.model_meta.get_obj_class(dto.class_name)
+        if obj_class is None:
+            raise KeyError(
+                f"Class {dto.class_name} not found in model classes {self.get_classes()}"
+            )
+        geometry = sly.Rectangle(*dto.bbox_tlbr)
+        tags = []
+        if dto.score is not None:
+            tags.append(sly.Tag(self._get_confidence_tag_meta(), dto.score))
+        label = sly.Label(geometry, obj_class, tags)
         return label
 
     def predict(
