@@ -820,8 +820,6 @@ def start_training():
 
     if weights_type == "Pretrained models":
         selected_model = models_table.get_selected_row()[0]
-        if selected_model.endswith("det"):
-            selected_model = selected_model[:-4]
         if select_train_mode.get_value() == "Finetune mode":
             model_filename = selected_model.lower() + ".pt"
             pretrained = True
