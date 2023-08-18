@@ -1,55 +1,37 @@
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-from pathlib import Path
-import numpy as np
-import yaml
+import math
 import random
+import threading
+from functools import partial
+from pathlib import Path
+from urllib.request import urlopen
+
+import numpy as np
+import pandas as pd
+import ruamel.yaml
 import supervisely as sly
 import supervisely.io.env as env
-import src.globals as g
-from dotenv import load_dotenv
-import yaml
-from supervisely.app.widgets import (
-    Container,
-    Card,
-    SelectString,
-    InputNumber,
-    Input,
-    Button,
-    Field,
-    Progress,
-    SelectDataset,
-    ClassesTable,
-    DoneLabel,
-    Editor,
-    Checkbox,
-    RadioTabs,
-    RadioTable,
-    RadioGroup,
-    NotificationBox,
-    FileThumbnail,
-    GridPlot,
-    FolderThumbnail,
-    TrainValSplits,
-    Flexbox,
-    Image,
-    GridGallery,
-    TaskLogs,
-    Stepper,
-)
-from src.utils import get_train_val_sets, verify_train_val_sets
-from src.sly_to_yolov8 import transform
-from src.callbacks import on_train_batch_end
-from ultralytics import YOLO
 import torch
+import yaml
+from dotenv import load_dotenv
+from fastapi import Request, Response
+from supervisely.app.widgets import (Button, Card, Checkbox, ClassesTable,
+                                     Container, DoneLabel, Editor, Field,
+                                     FileThumbnail, Flexbox, FolderThumbnail,
+                                     GridGallery, GridPlot, Image, Input,
+                                     InputNumber, NotificationBox, Progress,
+                                     RadioGroup, RadioTable, RadioTabs,
+                                     SelectDataset, SelectString, Stepper,
+                                     TaskLogs, TrainValSplits)
+from ultralytics import YOLO
+
+import src.globals as g
+from src.callbacks import on_train_batch_end
 from src.metrics_watcher import Watcher
-import threading
-import pandas as pd
-from functools import partial
-from urllib.request import urlopen
-import math
-import ruamel.yaml
-from fastapi import Response, Request
+from src.sly_to_yolov8 import transform
+from src.utils import get_train_val_sets, verify_train_val_sets
 
 
 # function for updating global variables
@@ -111,14 +93,14 @@ card_project_settings = Card(title="Dataset selection", content=project_settings
 
 
 ### 2. Project classes
-task_type_items = [
-    RadioGroup.Item(value="object detection"),
-]
-task_type_select = RadioGroup(items=task_type_items, direction="vertical")
-task_type_select_f = Field(
-    content=task_type_select,
-    title="Task type",
-)
+#task_type_items = [
+#    RadioGroup.Item(value="object detection"),
+#]
+#task_type_select = RadioGroup(items=task_type_items, direction="vertical")
+#task_type_select_f = Field(
+#    content=task_type_select,
+#    title="Task type",
+#)
 classes_table = ClassesTable()
 select_classes_button = Button("select classes")
 select_classes_button.hide()
@@ -133,7 +115,7 @@ classes_done = DoneLabel()
 classes_done.hide()
 classes_content = Container(
     [
-        task_type_select_f,
+        #task_type_select_f,
         classes_table,
         select_classes_button,
         select_other_classes_button,
@@ -141,7 +123,7 @@ classes_content = Container(
     ]
 )
 card_classes = Card(
-    title="Task type & training classes",
+    title="Training classes",
     description="Select task type and classes, that should be used for training. Supported shapes include rectangle",
     content=classes_content,
     collapsable=True,
@@ -545,7 +527,7 @@ def on_classes_selected(selected_classes):
     else:
         select_classes_button.hide()
 
-
+"""
 @task_type_select.value_changed
 def select_task(task_type):
     project_shapes = [cls.geometry_type.geometry_name() for cls in project_meta.obj_classes]
@@ -560,7 +542,7 @@ def select_task(task_type):
         rows=models_table_rows,
         subtitles=models_table_subtitles,
     )
-
+"""
 
 @select_classes_button.click
 def select_classes():
@@ -573,7 +555,7 @@ def select_classes():
     classes_done.show()
     select_other_classes_button.show()
     classes_table.disable()
-    task_type_select.disable()
+    #task_type_select.disable()
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
@@ -584,7 +566,7 @@ def select_classes():
 @select_other_classes_button.click
 def select_other_classes():
     classes_table.enable()
-    task_type_select.enable()
+    #task_type_select.enable()
     select_other_classes_button.hide()
     classes_done.hide()
     select_classes_button.show()
@@ -658,7 +640,7 @@ def change_file_preview(value):
 @additional_config_radio.value_changed
 def change_radio(value):
     if value == "import template from Team Files":
-        remote_templates_dir = os.path.join("/yolov5_train", task_type_select.get_value(), "param_templates")
+        remote_templates_dir = os.path.join("/yolov5_train", "param_templates")
         templates = api.file.list(team_id, remote_templates_dir)
         if len(templates) == 0:
             no_templates_notification.show()
@@ -673,7 +655,7 @@ def change_radio(value):
 
 @additional_config_template_select.value_changed
 def change_template(template):
-    remote_templates_dir = os.path.join("/yolov5_train", task_type_select.get_value(), "param_templates")
+    remote_templates_dir = os.path.join("/yolov5_train", "param_templates")
     remote_template_path = os.path.join(remote_templates_dir, template)
     local_template_path = os.path.join(g.app_data_dir, template)
     api.file.download(team_id, remote_template_path, local_template_path)
@@ -685,7 +667,7 @@ def change_template(template):
 @save_template_button.click
 def upload_template():
     save_template_button.loading = True
-    remote_templates_dir = os.path.join("/yolov5_train", task_type_select.get_value(), "param_templates")
+    remote_templates_dir = os.path.join("/yolov5_train", "param_templates")
     additional_params = train_settings_editor.get_text()
     ryaml = ruamel.yaml.YAML()
     additional_params = ryaml.load(additional_params)
@@ -756,7 +738,7 @@ def change_logs_visibility():
 
 @start_training_button.click
 def start_training():
-    task_type = task_type_select.get_value()
+    task_type = "object detection"
     if sly.is_production():
         local_dir = g.root_source_path
     else:
@@ -790,17 +772,8 @@ def start_training():
     # remove unselected classes
     selected_classes = classes_table.get_selected_classes()
     sly.Project.remove_classes_except(g.project_dir, classes_to_keep=selected_classes, inplace=True)
-    # remove classes with unnecessary shapes
-    if task_type != "object detection":
-        unnecessary_classes = []
-        for cls in project_meta.obj_classes:
-            if cls.name in selected_classes and cls.geometry_type.geometry_name() not in necessary_geometries:
-                unnecessary_classes.append(cls.name)
-        if len(unnecessary_classes) > 0:
-            sly.Project.remove_classes(g.project_dir, classes_to_remove=unnecessary_classes, inplace=True)
     # transfer project to detection task if necessary
-    if task_type == "object detection":
-        sly.Project.to_detection_task(g.project_dir, inplace=True)
+    sly.Project.to_detection_task(g.project_dir, inplace=True)
     # remove unlabeled images if such option was selected by user
     if unlabeled_images_select.get_value() == "ignore unlabeled images":
         n_images_before = n_images
@@ -1108,7 +1081,7 @@ def start_training():
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        "/yolov5_train", task_type_select.get_value(), project_info.name, str(g.app_session_id)
+        "/yolov5_train", project_info.name, str(g.app_session_id)
     )
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
@@ -1182,7 +1155,7 @@ def auto_train(request: Request):
     classes_done.show()
     select_other_classes_button.show()
     classes_table.disable()
-    task_type_select.disable()
+    #task_type_select.disable()
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
