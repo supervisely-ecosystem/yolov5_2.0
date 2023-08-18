@@ -1,16 +1,16 @@
-import supervisely as sly
-from supervisely.app.widgets import RadioGroup, Field
-from supervisely.project.project_meta import ProjectMeta
-from supervisely.annotation.obj_class import ObjClass
-from supervisely.imaging.color import get_predefined_colors
-from supervisely.nn.prediction_dto import PredictionMask, PredictionBBox, PredictionKeypoints
-from ultralytics import YOLO
-import torch
 import os
-from dotenv import load_dotenv
 from pathlib import Path
 
-from src.keypoints_template import human_template, dict_to_template
+import supervisely as sly
+import torch
+from dotenv import load_dotenv
+from supervisely.annotation.obj_class import ObjClass
+from supervisely.app.widgets import Field, RadioGroup
+from supervisely.imaging.color import get_predefined_colors
+from supervisely.nn.prediction_dto import (PredictionBBox, PredictionKeypoints,
+                                           PredictionMask)
+from supervisely.project.project_meta import ProjectMeta
+from ultralytics import YOLO
 
 # for local inference
 # from keypoints_template import human_template, dict_to_template
@@ -20,19 +20,16 @@ try:
 except ImportError:
     # for compatibility with python 3.7
     from typing_extensions import Literal
-from typing import List, Any, Dict, Union
+
+from typing import Any, Dict, List, Union
+
 import numpy as np
 
-
-load_dotenv("local.env")
+#load_dotenv("local.env")
 load_dotenv(os.path.expanduser("~/supervisely.env"))
 root_source_path = str(Path(__file__).parents[2])
 det_models_data_path = os.path.join(root_source_path, "models", "det_models_data.json")
-seg_models_data_path = os.path.join(root_source_path, "models", "seg_models_data.json")
-pose_models_data_path = os.path.join(root_source_path, "models", "pose_models_data.json")
 det_models_data = sly.json.load_json_file(det_models_data_path)
-seg_models_data = sly.json.load_json_file(seg_models_data_path)
-pose_models_data = sly.json.load_json_file(pose_models_data_path)
 
 
 class YOLOv5Model(sly.nn.inference.ObjectDetection):
