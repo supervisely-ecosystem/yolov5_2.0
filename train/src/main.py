@@ -640,7 +640,7 @@ def change_file_preview(value):
 @additional_config_radio.value_changed
 def change_radio(value):
     if value == "import template from Team Files":
-        remote_templates_dir = os.path.join("/yolov5_train", "param_templates")
+        remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
         templates = api.file.list(team_id, remote_templates_dir)
         if len(templates) == 0:
             no_templates_notification.show()
@@ -655,7 +655,7 @@ def change_radio(value):
 
 @additional_config_template_select.value_changed
 def change_template(template):
-    remote_templates_dir = os.path.join("/yolov5_train", "param_templates")
+    remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
     remote_template_path = os.path.join(remote_templates_dir, template)
     local_template_path = os.path.join(g.app_data_dir, template)
     api.file.download(team_id, remote_template_path, local_template_path)
@@ -667,7 +667,7 @@ def change_template(template):
 @save_template_button.click
 def upload_template():
     save_template_button.loading = True
-    remote_templates_dir = os.path.join("/yolov5_train", "param_templates")
+    remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
     additional_params = train_settings_editor.get_text()
     ryaml = ruamel.yaml.YAML()
     additional_params = ryaml.load(additional_params)
@@ -1079,7 +1079,7 @@ def start_training():
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        "/yolov5_train", project_info.name, str(g.app_session_id)
+        "/yolov5_train/object detection/", project_info.name, str(g.app_session_id)
     )
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
@@ -1271,8 +1271,6 @@ def auto_train(request: Request):
         selected_model = models_table.get_selected_row()[0]
     else:
         selected_model = state["model"]
-    if selected_model.endswith("det"):
-        selected_model = selected_model[:-4]
     if "train_mode" in state and state["train_mode"] == "scratch":
         model_filename = selected_model.lower() + ".yaml"
         pretrained = False
