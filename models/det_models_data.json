@@ -14,21 +14,21 @@
         "FLOPs (B)": "24.0"
     },
     {
-        "Model": "YOLOv8mu",
+        "Model": "YOLOv5mu",
         "Size (pixels)": "640",
         "mAP": "59.0",
         "params (M)": "25.1",
         "FLOPs (B)": "64.2"
     },
     {
-        "Model": "YOLOv8lu",
+        "Model": "YOLOv5lu",
         "Size (pixels)": "640",
         "mAP": "52.2",
         "params (M)": "43.2",
         "FLOPs (B)": "135.0"
     },
     {
-        "Model": "YOLOv8xu",
+        "Model": "YOLOv5xu",
         "Size (pixels)": "640",
         "mAP": "53.2",
         "params (M)": "97.2",
@@ -49,21 +49,21 @@
         "FLOPs (B)": "24.6"
     },
     {
-        "Model": "YOLOv8m6u",
+        "Model": "YOLOv5m6u",
         "Size (pixels)": "1280",
         "mAP": "53.6",
         "params (M)": "41.2",
         "FLOPs (B)": "65.7"
     },
     {
-        "Model": "YOLOv8l6u",
+        "Model": "YOLOv5l6u",
         "Size (pixels)": "1280",
         "mAP": "55.7",
         "params (M)": "86.1",
         "FLOPs (B)": "137.4"
     },
     {
-        "Model": "YOLOv8x6u",
+        "Model": "YOLOv5x6u",
         "Size (pixels)": "1280",
         "mAP": "56.8",
         "params (M)": "155.4",
