@@ -12,9 +12,6 @@ from supervisely.nn.prediction_dto import (PredictionBBox, PredictionKeypoints,
 from supervisely.project.project_meta import ProjectMeta
 from ultralytics import YOLO
 
-# for local inference
-# from keypoints_template import human_template, dict_to_template
-
 try:
     from typing import Literal
 except ImportError:
@@ -76,6 +73,10 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
         self.model.to(self.device)
         print(f"✅ Model has been successfully loaded on {device.upper()} device")
 
+        obj_classes = [sly.ObjClass(name, sly.Rectangle) for name in self.class_names]
+        self._model_meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes))
+        self._get_confidence_tag_meta()
+        
     def get_info(self):
         info = super().get_info()
         info["task type"] = self.task_type
@@ -88,17 +89,6 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
 
     def get_classes(self) -> List[str]:
         return self.class_names
-
-    @property
-    def model_meta(self) -> ProjectMeta:
-        if self._model_meta is None:
-            colors = get_predefined_colors(len(self.get_classes()))
-            classes = []
-            for name, rgb in zip(self.get_classes(), colors):
-                classes.append(ObjClass(name, sly.Rectangle, rgb))
-            self._model_meta = ProjectMeta(classes)
-            self._get_confidence_tag_meta()
-        return self._model_meta
 
     def _create_label(self, dto: PredictionBBox):
         obj_class = self.model_meta.get_obj_class(dto.class_name)
