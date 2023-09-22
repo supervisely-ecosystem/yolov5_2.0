@@ -70,7 +70,7 @@ sly.logger.info(f"App root directory: {g.app_root_directory}")
 
 
 ### 1. Dataset selection
-dataset_selector = SelectDataset(project_id=project_id, multiselect=True, select_all_datasets=True)
+dataset_selector = SelectDataset(project_id=project_id, multiselect=True, select_all_datasets=False) # there is a bug when True
 select_data_button = Button("Select data")
 select_done = DoneLabel("Successfully selected input data")
 select_done.hide()
@@ -93,14 +93,6 @@ card_project_settings = Card(title="Dataset selection", content=project_settings
 
 
 ### 2. Project classes
-#task_type_items = [
-#    RadioGroup.Item(value="object detection"),
-#]
-#task_type_select = RadioGroup(items=task_type_items, direction="vertical")
-#task_type_select_f = Field(
-#    content=task_type_select,
-#    title="Task type",
-#)
 classes_table = ClassesTable()
 select_classes_button = Button("select classes")
 select_classes_button.hide()
@@ -479,6 +471,11 @@ server = app.get_server()
 
 @dataset_selector.value_changed
 def on_dataset_selected(new_dataset_ids):
+    # TODO: remove when fixed
+    if new_dataset_ids == [None]:
+        new_dataset_ids = []
+    # TODO: remove when fixed
+
     if new_dataset_ids == []:
         select_data_button.hide()
     elif new_dataset_ids != [] and reselect_data_button.is_hidden():
@@ -559,7 +556,12 @@ def select_classes():
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
+
+    # TODO: remove this when fixed
+    card_train_val_split._content._widgets[0] = TrainValSplits(project_id=project_id)
+    # TODO: remove this when fixed
     card_train_val_split.unlock()
+    card_train_val_split.collapse()
     card_train_val_split.uncollapse()
 
 
