@@ -1,55 +1,37 @@
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-from pathlib import Path
-import numpy as np
-import yaml
+import math
 import random
+import threading
+from functools import partial
+from pathlib import Path
+from urllib.request import urlopen
+
+import numpy as np
+import pandas as pd
+import ruamel.yaml
 import supervisely as sly
 import supervisely.io.env as env
-import src.globals as g
-from dotenv import load_dotenv
-import yaml
-from supervisely.app.widgets import (
-    Container,
-    Card,
-    SelectString,
-    InputNumber,
-    Input,
-    Button,
-    Field,
-    Progress,
-    SelectDataset,
-    ClassesTable,
-    DoneLabel,
-    Editor,
-    Checkbox,
-    RadioTabs,
-    RadioTable,
-    RadioGroup,
-    NotificationBox,
-    FileThumbnail,
-    GridPlot,
-    FolderThumbnail,
-    TrainValSplits,
-    Flexbox,
-    Image,
-    GridGallery,
-    TaskLogs,
-    Stepper,
-)
-from src.utils import verify_train_val_sets
-from src.sly_to_yolov8 import transform
-from src.callbacks import on_train_batch_end
-from ultralytics import YOLO
 import torch
+import yaml
+from dotenv import load_dotenv
+from fastapi import Request, Response
+from supervisely.app.widgets import (Button, Card, Checkbox, ClassesTable,
+                                     Container, DoneLabel, Editor, Field,
+                                     FileThumbnail, Flexbox, FolderThumbnail,
+                                     GridGallery, GridPlot, Image, Input,
+                                     InputNumber, NotificationBox, Progress,
+                                     RadioGroup, RadioTable, RadioTabs,
+                                     SelectDataset, SelectString, Stepper,
+                                     TaskLogs, TrainValSplits)
+from ultralytics import YOLO
+
+import src.globals as g
+from src.callbacks import on_train_batch_end
 from src.metrics_watcher import Watcher
-import threading
-import pandas as pd
-from functools import partial
-from urllib.request import urlopen
-import math
-import ruamel.yaml
-from fastapi import Response, Request
+from src.sly_to_yolov8 import transform
+from src.utils import verify_train_val_sets
 
 
 # function for updating global variables
@@ -88,7 +70,7 @@ sly.logger.info(f"App root directory: {g.app_root_directory}")
 
 
 ### 1. Dataset selection
-dataset_selector = SelectDataset(project_id=project_id, multiselect=True, select_all_datasets=True)
+dataset_selector = SelectDataset(project_id=project_id, multiselect=True, select_all_datasets=False) # there is a bug when True
 select_data_button = Button("Select data")
 select_done = DoneLabel("Successfully selected input data")
 select_done.hide()
@@ -111,16 +93,6 @@ card_project_settings = Card(title="Dataset selection", content=project_settings
 
 
 ### 2. Project classes
-task_type_items = [
-    RadioGroup.Item(value="object detection"),
-    RadioGroup.Item(value="instance segmentation"),
-    RadioGroup.Item(value="pose estimation"),
-]
-task_type_select = RadioGroup(items=task_type_items, direction="vertical")
-task_type_select_f = Field(
-    content=task_type_select,
-    title="Task type",
-)
 classes_table = ClassesTable()
 select_classes_button = Button("select classes")
 select_classes_button.hide()
@@ -135,7 +107,7 @@ classes_done = DoneLabel()
 classes_done.hide()
 classes_content = Container(
     [
-        task_type_select_f,
+        #task_type_select_f,
         classes_table,
         select_classes_button,
         select_other_classes_button,
@@ -143,8 +115,8 @@ classes_content = Container(
     ]
 )
 card_classes = Card(
-    title="Task type & training classes",
-    description="Select task type and classes, that should be used for training. Supported shapes include rectangle, bitmap, polygon and graph",
+    title="Training classes",
+    description="Select task type and classes, that should be used for training. Supported shapes include rectangle",
     content=classes_content,
     collapsable=True,
     lock_message="Complete the previous step to unlock",
@@ -499,6 +471,11 @@ server = app.get_server()
 
 @dataset_selector.value_changed
 def on_dataset_selected(new_dataset_ids):
+    # TODO: remove when fixed
+    if new_dataset_ids == [None]:
+        new_dataset_ids = []
+    # TODO: remove when fixed
+
     if new_dataset_ids == []:
         select_data_button.hide()
     elif new_dataset_ids != [] and reselect_data_button.is_hidden():
@@ -509,30 +486,7 @@ def on_dataset_selected(new_dataset_ids):
 @select_data_button.click
 def select_input_data():
     project_shapes = [cls.geometry_type.geometry_name() for cls in project_meta.obj_classes]
-    if "bitmap" in project_shapes or "polygon" in project_shapes:
-        task_type_select.set_value("instance segmentation")
-        models_table_columns = [key for key in g.seg_models_data[0].keys()]
-        models_table_subtitles = [None] * len(models_table_columns)
-        models_table_rows = []
-        for element in g.seg_models_data:
-            models_table_rows.append(list(element.values()))
-        models_table.set_data(
-            columns=models_table_columns,
-            rows=models_table_rows,
-            subtitles=models_table_subtitles,
-        )
-    elif "graph" in project_shapes:
-        task_type_select.set_value("pose estimation")
-        models_table_columns = [key for key in g.pose_models_data[0].keys()]
-        models_table_subtitles = [None] * len(models_table_columns)
-        models_table_rows = []
-        for element in g.pose_models_data:
-            models_table_rows.append(list(element.values()))
-        models_table.set_data(
-            columns=models_table_columns,
-            rows=models_table_rows,
-            subtitles=models_table_subtitles,
-        )
+
     select_data_button.loading = True
     dataset_selector.disable()
     classes_table.read_project_from_id(project_id)
@@ -570,63 +524,22 @@ def on_classes_selected(selected_classes):
     else:
         select_classes_button.hide()
 
-
+"""
 @task_type_select.value_changed
 def select_task(task_type):
     project_shapes = [cls.geometry_type.geometry_name() for cls in project_meta.obj_classes]
-    if task_type == "object detection":
-        select_classes_button.enable()
-        models_table_columns = [key for key in g.det_models_data[0].keys()]
-        models_table_subtitles = [None] * len(models_table_columns)
-        models_table_rows = []
-        for element in g.det_models_data:
-            models_table_rows.append(list(element.values()))
-        models_table.set_data(
-            columns=models_table_columns,
-            rows=models_table_rows,
-            subtitles=models_table_subtitles,
-        )
-    elif task_type == "instance segmentation":
-        if "bitmap" not in project_shapes and "polygon" not in project_shapes:
-            sly.app.show_dialog(
-                title="There are no classes of shape mask (bitmap / polygon) in selected project",
-                description="Please, change task type or select another project with classes of shape bitmap / polygon",
-                status="warning",
-            )
-            select_classes_button.disable()
-        else:
-            select_classes_button.enable()
-            models_table_columns = [key for key in g.seg_models_data[0].keys()]
-            models_table_subtitles = [None] * len(models_table_columns)
-            models_table_rows = []
-            for element in g.seg_models_data:
-                models_table_rows.append(list(element.values()))
-            models_table.set_data(
-                columns=models_table_columns,
-                rows=models_table_rows,
-                subtitles=models_table_subtitles,
-            )
-    elif task_type == "pose estimation":
-        if "graph" not in project_shapes:
-            sly.app.show_dialog(
-                title="There are no classes of shape keypoints (graph) in selected project",
-                description="Please, change task type or select another project with classes of shape graph",
-                status="warning",
-            )
-            select_classes_button.disable()
-        else:
-            select_classes_button.enable()
-            models_table_columns = [key for key in g.pose_models_data[0].keys()]
-            models_table_subtitles = [None] * len(models_table_columns)
-            models_table_rows = []
-            for element in g.pose_models_data:
-                models_table_rows.append(list(element.values()))
-            models_table.set_data(
-                columns=models_table_columns,
-                rows=models_table_rows,
-                subtitles=models_table_subtitles,
-            )
-
+    select_classes_button.enable()
+    models_table_columns = [key for key in g.det_models_data[0].keys()]
+    models_table_subtitles = [None] * len(models_table_columns)
+    models_table_rows = []
+    for element in g.det_models_data:
+        models_table_rows.append(list(element.values()))
+    models_table.set_data(
+        columns=models_table_columns,
+        rows=models_table_rows,
+        subtitles=models_table_subtitles,
+    )
+"""
 
 @select_classes_button.click
 def select_classes():
@@ -639,18 +552,23 @@ def select_classes():
     classes_done.show()
     select_other_classes_button.show()
     classes_table.disable()
-    task_type_select.disable()
+    #task_type_select.disable()
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
+
+    # TODO: remove this when fixed
+    card_train_val_split._content._widgets[0] = TrainValSplits(project_id=project_id)
+    # TODO: remove this when fixed
     card_train_val_split.unlock()
+    card_train_val_split.collapse()
     card_train_val_split.uncollapse()
 
 
 @select_other_classes_button.click
 def select_other_classes():
     classes_table.enable()
-    task_type_select.enable()
+    #task_type_select.enable()
     select_other_classes_button.hide()
     classes_done.hide()
     select_classes_button.show()
@@ -724,7 +642,7 @@ def change_file_preview(value):
 @additional_config_radio.value_changed
 def change_radio(value):
     if value == "import template from Team Files":
-        remote_templates_dir = os.path.join("/yolov8_train", task_type_select.get_value(), "param_templates")
+        remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
         templates = api.file.list(team_id, remote_templates_dir)
         if len(templates) == 0:
             no_templates_notification.show()
@@ -739,7 +657,7 @@ def change_radio(value):
 
 @additional_config_template_select.value_changed
 def change_template(template):
-    remote_templates_dir = os.path.join("/yolov8_train", task_type_select.get_value(), "param_templates")
+    remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
     remote_template_path = os.path.join(remote_templates_dir, template)
     local_template_path = os.path.join(g.app_data_dir, template)
     api.file.download(team_id, remote_template_path, local_template_path)
@@ -751,7 +669,7 @@ def change_template(template):
 @save_template_button.click
 def upload_template():
     save_template_button.loading = True
-    remote_templates_dir = os.path.join("/yolov8_train", task_type_select.get_value(), "param_templates")
+    remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
     additional_params = train_settings_editor.get_text()
     ryaml = ruamel.yaml.YAML()
     additional_params = ryaml.load(additional_params)
@@ -822,20 +740,14 @@ def change_logs_visibility():
 
 @start_training_button.click
 def start_training():
-    task_type = task_type_select.get_value()
+    task_type = "object detection"
     if sly.is_production():
         local_dir = g.root_source_path
     else:
         local_dir = g.app_root_directory
-    if task_type == "object detection":
-        necessary_geometries = ["rectangle"]
-        local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
-    elif task_type == "pose estimation":
-        necessary_geometries = ["graph"]
-        local_artifacts_dir = os.path.join(local_dir, "runs", "pose", "train")
-    elif task_type == "instance segmentation":
-        necessary_geometries = ["bitmap", "polygon"]
-        local_artifacts_dir = os.path.join(local_dir, "runs", "segment", "train")
+
+    necessary_geometries = ["rectangle"]
+    local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
 
     sly.logger.info(f"Local artifacts dir: {local_artifacts_dir}")
 
@@ -862,17 +774,8 @@ def start_training():
     # remove unselected classes
     selected_classes = classes_table.get_selected_classes()
     sly.Project.remove_classes_except(g.project_dir, classes_to_keep=selected_classes, inplace=True)
-    # remove classes with unnecessary shapes
-    if task_type != "object detection":
-        unnecessary_classes = []
-        for cls in project_meta.obj_classes:
-            if cls.name in selected_classes and cls.geometry_type.geometry_name() not in necessary_geometries:
-                unnecessary_classes.append(cls.name)
-        if len(unnecessary_classes) > 0:
-            sly.Project.remove_classes(g.project_dir, classes_to_remove=unnecessary_classes, inplace=True)
     # transfer project to detection task if necessary
-    if task_type == "object detection":
-        sly.Project.to_detection_task(g.project_dir, inplace=True)
+    sly.Project.to_detection_task(g.project_dir, inplace=True)
     # remove unlabeled images if such option was selected by user
     if unlabeled_images_select.get_value() == "ignore unlabeled images":
         n_images_before = n_images
@@ -896,11 +799,11 @@ def start_training():
     train_set, val_set = train_val_split.get_splits()
     verify_train_val_sets(train_set, val_set)
     # convert dataset from supervisely to yolo format
-    if os.path.exists(g.yolov8_project_dir):
-        sly.fs.clean_dir(g.yolov8_project_dir)
+    if os.path.exists(g.yolov5_project_dir):
+        sly.fs.clean_dir(g.yolov5_project_dir)
     transform(
         g.project_dir,
-        g.yolov8_project_dir,
+        g.yolov5_project_dir,
         train_set,
         val_set,
         progress_bar_convert_to_yolo,
@@ -919,8 +822,6 @@ def start_training():
 
     if weights_type == "Pretrained models":
         selected_model = models_table.get_selected_row()[0]
-        if selected_model.endswith("det"):
-            selected_model = selected_model[:-4]
         if select_train_mode.get_value() == "Finetune mode":
             model_filename = selected_model.lower() + ".pt"
             pretrained = True
@@ -986,8 +887,7 @@ def start_training():
     # get additional training params
     additional_params = train_settings_editor.get_text()
     additional_params = yaml.safe_load(additional_params)
-    if task_type == "pose estimation":
-        additional_params["fliplr"] = 0.0
+
     # set up epoch progress bar and grid plot
     pd.set_option("display.max_columns", None)
     pd.set_option("display.width", None)
@@ -996,7 +896,7 @@ def start_training():
     plot_notification.show()
     watch_file = os.path.join(local_artifacts_dir, "results.csv")
     plotted_train_batches = []
-    remote_images_path = f"/yolov8_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+    remote_images_path = f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
 
     def check_number(value):
         # if value is not str, NaN, infinity or negative infinity
@@ -1014,23 +914,15 @@ def start_training():
         train_box_loss = results["train/box_loss"].iat[-1]
         train_cls_loss = results["train/cls_loss"].iat[-1]
         train_dfl_loss = results["train/dfl_loss"].iat[-1]
-        if "train/pose_loss" in results.columns:
-            train_pose_loss = results["train/pose_loss"].iat[-1]
         if "train/kobj_loss" in results.columns:
             train_kobj_loss = results["train/kobj_loss"].iat[-1]
-        if "train/seg_loss" in results.columns:
-            train_seg_loss = results["train/seg_loss"].iat[-1]
         precision = results["metrics/precision(B)"].iat[-1]
         recall = results["metrics/recall(B)"].iat[-1]
         val_box_loss = results["val/box_loss"].iat[-1]
         val_cls_loss = results["val/cls_loss"].iat[-1]
         val_dfl_loss = results["val/dfl_loss"].iat[-1]
-        if "val/pose_loss" in results.columns:
-            val_pose_loss = results["val/pose_loss"].iat[-1]
         if "val/kobj_loss" in results.columns:
             val_kobj_loss = results["val/kobj_loss"].iat[-1]
-        if "val/seg_loss" in results.columns:
-            val_seg_loss = results["val/seg_loss"].iat[-1]
         # update progress bar
         x = results["epoch"].iat[-1]
         pbar.update(int(x) + 1 - pbar.n)
@@ -1041,15 +933,9 @@ def start_training():
             grid_plot.add_scalar("train/cls loss", float(train_cls_loss), int(x))
         if check_number(float(train_dfl_loss)):
             grid_plot.add_scalar("train/dfl loss", float(train_dfl_loss), int(x))
-        if "train/pose_loss" in results.columns:
-            if check_number(float(train_pose_loss)):
-                grid_plot.add_scalar("train/pose loss", float(train_pose_loss), int(x))
         if "train/kobj_loss" in results.columns:
             if check_number(float(train_kobj_loss)):
                 grid_plot.add_scalar("train/kobj loss", float(train_kobj_loss), int(x))
-        if "train/seg_loss" in results.columns:
-            if check_number(float(train_seg_loss)):
-                grid_plot.add_scalar("train/seg loss", float(train_seg_loss), int(x))
         if check_number(float(precision)):
             grid_plot.add_scalar("precision & recall/precision", float(precision), int(x))
         if check_number(float(recall)):
@@ -1060,15 +946,9 @@ def start_training():
             grid_plot.add_scalar("val/cls loss", float(val_cls_loss), int(x))
         if check_number(float(val_dfl_loss)):
             grid_plot.add_scalar("val/dfl loss", float(val_dfl_loss), int(x))
-        if "val/pose_loss" in results.columns:
-            if check_number(float(val_pose_loss)):
-                grid_plot.add_scalar("val/pose loss", float(val_pose_loss), int(x))
         if "val/kobj_loss" in results.columns:
             if check_number(float(val_kobj_loss)):
                 grid_plot.add_scalar("val/kobj loss", float(val_kobj_loss), int(x))
-        if "val/seg_loss" in results.columns:
-            if check_number(float(val_seg_loss)):
-                grid_plot.add_scalar("val/seg loss", float(val_seg_loss), int(x))
         # visualize train batch
         batch = f"train_batch{x}.jpg"
         local_train_batches_path = os.path.join(local_artifacts_dir, batch)
@@ -1087,7 +967,7 @@ def start_training():
     )
     # train model and upload best checkpoints to team files
     device = 0 if torch.cuda.is_available() else "cpu"
-    data_path = os.path.join(g.yolov8_project_dir, "data_config.yaml")
+    data_path = os.path.join(g.yolov5_project_dir, "data_config.yaml")
     sly.logger.info(f"Using device: {device}")
 
     def watcher_func():
@@ -1180,16 +1060,6 @@ def start_training():
         remote_box_f1_curve_path = os.path.join(remote_images_path, "BoxF1_curve.png")
         tf_box_f1_curve_info = api.file.upload(team_id, box_f1_curve_path, remote_box_f1_curve_path)
         additional_gallery.append(tf_box_f1_curve_info.full_storage_url)
-    pose_f1_curve_path = os.path.join(local_artifacts_dir, "PoseF1_curve.png")
-    if os.path.exists(pose_f1_curve_path):
-        remote_pose_f1_curve_path = os.path.join(remote_images_path, "PoseF1_curve.png")
-        tf_pose_f1_curve_info = api.file.upload(team_id, pose_f1_curve_path, remote_pose_f1_curve_path)
-        additional_gallery.append(tf_pose_f1_curve_info.full_storage_url)
-    mask_f1_curve_path = os.path.join(local_artifacts_dir, "MaskF1_curve.png")
-    if os.path.exists(mask_f1_curve_path):
-        remote_mask_f1_curve_path = os.path.join(remote_images_path, "MaskF1_curve.png")
-        tf_mask_f1_curve_info = api.file.upload(team_id, mask_f1_curve_path, remote_mask_f1_curve_path)
-        additional_gallery.append(tf_mask_f1_curve_info.full_storage_url)
 
     # rename best checkpoint file
     results = pd.read_csv(watch_file)
@@ -1203,17 +1073,6 @@ def start_training():
     new_best_filepath = os.path.join(local_artifacts_dir, "weights", best_filename)
     os.rename(current_best_filepath, new_best_filepath)
 
-    # add geometry config to saved weights for pose estimation task
-    if task_type == "pose estimation":
-        for obj_class in project_meta.obj_classes:
-            if obj_class.geometry_type.geometry_name() == "graph" and obj_class.name in selected_classes:
-                geometry_config = obj_class.geometry_config
-                break
-        weights_filepath = os.path.join(local_artifacts_dir, "weights", best_filename)
-        weights_dict = torch.load(weights_filepath)
-        weights_dict["geometry_config"] = geometry_config
-        torch.save(weights_dict, weights_filepath)
-
     # save link to app ui
     app_url = f"/apps/sessions/{g.app_session_id}"
     app_link_path = os.path.join(local_artifacts_dir, "open_app.lnk")
@@ -1222,7 +1081,7 @@ def start_training():
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        "/yolov8_train", task_type_select.get_value(), project_info.name, str(g.app_session_id)
+        "/yolov5_train/object detection/", project_info.name, str(g.app_session_id)
     )
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
@@ -1281,28 +1140,6 @@ def auto_train(request: Request):
     project_id = state["project_id"]
     task_type = state["task_type"]
 
-    if task_type == "instance segmentation":
-        models_table_columns = [key for key in g.seg_models_data[0].keys()]
-        models_table_subtitles = [None] * len(models_table_columns)
-        models_table_rows = []
-        for element in g.seg_models_data:
-            models_table_rows.append(list(element.values()))
-        models_table.set_data(
-            columns=models_table_columns,
-            rows=models_table_rows,
-            subtitles=models_table_subtitles,
-        )
-    elif task_type == "pose estimation":
-        models_table_columns = [key for key in g.pose_models_data[0].keys()]
-        models_table_subtitles = [None] * len(models_table_columns)
-        models_table_rows = []
-        for element in g.pose_models_data:
-            models_table_rows.append(list(element.values()))
-        models_table.set_data(
-            columns=models_table_columns,
-            rows=models_table_rows,
-            subtitles=models_table_subtitles,
-        )
     dataset_selector.disable()
     classes_table.read_project_from_id(project_id)
     select_data_button.hide()
@@ -1318,7 +1155,7 @@ def auto_train(request: Request):
     classes_done.show()
     select_other_classes_button.show()
     classes_table.disable()
-    task_type_select.disable()
+    #task_type_select.disable()
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
@@ -1369,15 +1206,9 @@ def auto_train(request: Request):
         local_dir = g.root_source_path
     else:
         local_dir = g.app_root_directory
-    if task_type == "object detection":
-        necessary_geometries = ["rectangle"]
-        local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
-    elif task_type == "pose estimation":
-        necessary_geometries = ["graph"]
-        local_artifacts_dir = os.path.join(local_dir, "runs", "pose", "train")
-    elif task_type == "instance segmentation":
-        necessary_geometries = ["bitmap", "polygon"]
-        local_artifacts_dir = os.path.join(local_dir, "runs", "segment", "train")
+
+    necessary_geometries = ["rectangle"]
+    local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
 
     sly.logger.info(f"Local artifacts dir: {local_artifacts_dir}")
 
@@ -1412,27 +1243,19 @@ def auto_train(request: Request):
         )
     project_meta = sly.ProjectMeta.from_json(api.project.get_meta(project_id))
     selected_classes = [cls.name for cls in project_meta.obj_classes]
-    # remove classes with unnecessary shapes
-    if task_type != "object detection":
-        unnecessary_classes = []
-        for cls in project_meta.obj_classes:
-            if cls.name in selected_classes and cls.geometry_type.geometry_name() not in necessary_geometries:
-                unnecessary_classes.append(cls.name)
-        if len(unnecessary_classes) > 0:
-            sly.Project.remove_classes(g.project_dir, classes_to_remove=unnecessary_classes, inplace=True)
-    # transfer project to detection task if necessary
-    if task_type == "object detection":
-        sly.Project.to_detection_task(g.project_dir, inplace=True)
+
+    # transfer project to detection task
+    sly.Project.to_detection_task(g.project_dir, inplace=True)
     # split the data
     train_val_split._project_fs = sly.Project(g.project_dir, sly.OpenMode.READ)
     train_set, val_set = train_val_split.get_splits()
     verify_train_val_sets(train_set, val_set)
     # convert dataset from supervisely to yolo format
-    if os.path.exists(g.yolov8_project_dir):
-        sly.fs.clean_dir(g.yolov8_project_dir)
+    if os.path.exists(g.yolov5_project_dir):
+        sly.fs.clean_dir(g.yolov5_project_dir)
     transform(
         g.project_dir,
-        g.yolov8_project_dir,
+        g.yolov5_project_dir,
         train_set,
         val_set,
         progress_bar_convert_to_yolo,
@@ -1451,8 +1274,6 @@ def auto_train(request: Request):
         selected_model = models_table.get_selected_row()[0]
     else:
         selected_model = state["model"]
-    if selected_model.endswith("det"):
-        selected_model = selected_model[:-4]
     if "train_mode" in state and state["train_mode"] == "scratch":
         model_filename = selected_model.lower() + ".yaml"
         pretrained = False
@@ -1492,10 +1313,7 @@ def auto_train(request: Request):
     # get additional training params
     additional_params = train_settings_editor.get_text()
     additional_params = yaml.safe_load(additional_params)
-    if task_type == "pose estimation":
-        additional_params["fliplr"] = 0.0
-        if "fliplr" in state:
-            state["fliplr"] = 0.0
+
     # set up epoch progress bar and grid plot
     pd.set_option("display.max_columns", None)
     pd.set_option("display.width", None)
@@ -1504,7 +1322,7 @@ def auto_train(request: Request):
     plot_notification.show()
     watch_file = os.path.join(local_artifacts_dir, "results.csv")
     plotted_train_batches = []
-    remote_images_path = f"/yolov8_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+    remote_images_path = f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
 
     def check_number(value):
         # if value is not str, NaN, infinity or negative infinity
@@ -1522,23 +1340,15 @@ def auto_train(request: Request):
         train_box_loss = results["train/box_loss"].iat[-1]
         train_cls_loss = results["train/cls_loss"].iat[-1]
         train_dfl_loss = results["train/dfl_loss"].iat[-1]
-        if "train/pose_loss" in results.columns:
-            train_pose_loss = results["train/pose_loss"].iat[-1]
         if "train/kobj_loss" in results.columns:
             train_kobj_loss = results["train/kobj_loss"].iat[-1]
-        if "train/seg_loss" in results.columns:
-            train_seg_loss = results["train/seg_loss"].iat[-1]
         precision = results["metrics/precision(B)"].iat[-1]
         recall = results["metrics/recall(B)"].iat[-1]
         val_box_loss = results["val/box_loss"].iat[-1]
         val_cls_loss = results["val/cls_loss"].iat[-1]
         val_dfl_loss = results["val/dfl_loss"].iat[-1]
-        if "val/pose_loss" in results.columns:
-            val_pose_loss = results["val/pose_loss"].iat[-1]
         if "val/kobj_loss" in results.columns:
             val_kobj_loss = results["val/kobj_loss"].iat[-1]
-        if "val/seg_loss" in results.columns:
-            val_seg_loss = results["val/seg_loss"].iat[-1]
         # update progress bar
         x = results["epoch"].iat[-1]
         pbar.update(int(x) + 1 - pbar.n)
@@ -1549,15 +1359,9 @@ def auto_train(request: Request):
             grid_plot.add_scalar("train/cls loss", float(train_cls_loss), int(x))
         if check_number(float(train_dfl_loss)):
             grid_plot.add_scalar("train/dfl loss", float(train_dfl_loss), int(x))
-        if "train/pose_loss" in results.columns:
-            if check_number(float(train_pose_loss)):
-                grid_plot.add_scalar("train/pose loss", float(train_pose_loss), int(x))
         if "train/kobj_loss" in results.columns:
             if check_number(float(train_kobj_loss)):
                 grid_plot.add_scalar("train/kobj loss", float(train_kobj_loss), int(x))
-        if "train/seg_loss" in results.columns:
-            if check_number(float(train_seg_loss)):
-                grid_plot.add_scalar("train/seg loss", float(train_seg_loss), int(x))
         if check_number(float(precision)):
             grid_plot.add_scalar("precision & recall/precision", float(precision), int(x))
         if check_number(float(recall)):
@@ -1568,15 +1372,9 @@ def auto_train(request: Request):
             grid_plot.add_scalar("val/cls loss", float(val_cls_loss), int(x))
         if check_number(float(val_dfl_loss)):
             grid_plot.add_scalar("val/dfl loss", float(val_dfl_loss), int(x))
-        if "val/pose_loss" in results.columns:
-            if check_number(float(val_pose_loss)):
-                grid_plot.add_scalar("val/pose loss", float(val_pose_loss), int(x))
         if "val/kobj_loss" in results.columns:
             if check_number(float(val_kobj_loss)):
                 grid_plot.add_scalar("val/kobj loss", float(val_kobj_loss), int(x))
-        if "val/seg_loss" in results.columns:
-            if check_number(float(val_seg_loss)):
-                grid_plot.add_scalar("val/seg loss", float(val_seg_loss), int(x))
         # visualize train batch
         batch = f"train_batch{x}.jpg"
         local_train_batches_path = os.path.join(local_artifacts_dir, batch)
@@ -1595,7 +1393,7 @@ def auto_train(request: Request):
     )
     # train model and upload best checkpoints to team files
     device = 0 if torch.cuda.is_available() else "cpu"
-    data_path = os.path.join(g.yolov8_project_dir, "data_config.yaml")
+    data_path = os.path.join(g.yolov5_project_dir, "data_config.yaml")
     sly.logger.info(f"Using device: {device}")
 
     def watcher_func():
@@ -1708,16 +1506,7 @@ def auto_train(request: Request):
         remote_box_f1_curve_path = os.path.join(remote_images_path, "BoxF1_curve.png")
         tf_box_f1_curve_info = api.file.upload(team_id, box_f1_curve_path, remote_box_f1_curve_path)
         additional_gallery.append(tf_box_f1_curve_info.full_storage_url)
-    pose_f1_curve_path = os.path.join(local_artifacts_dir, "PoseF1_curve.png")
-    if os.path.exists(pose_f1_curve_path):
-        remote_pose_f1_curve_path = os.path.join(remote_images_path, "PoseF1_curve.png")
-        tf_pose_f1_curve_info = api.file.upload(team_id, pose_f1_curve_path, remote_pose_f1_curve_path)
-        additional_gallery.append(tf_pose_f1_curve_info.full_storage_url)
-    mask_f1_curve_path = os.path.join(local_artifacts_dir, "MaskF1_curve.png")
-    if os.path.exists(mask_f1_curve_path):
-        remote_mask_f1_curve_path = os.path.join(remote_images_path, "MaskF1_curve.png")
-        tf_mask_f1_curve_info = api.file.upload(team_id, mask_f1_curve_path, remote_mask_f1_curve_path)
-        additional_gallery.append(tf_mask_f1_curve_info.full_storage_url)
+
 
     # rename best checkpoint file
     results = pd.read_csv(watch_file)
@@ -1731,17 +1520,6 @@ def auto_train(request: Request):
     new_best_filepath = os.path.join(local_artifacts_dir, "weights", best_filename)
     os.rename(current_best_filepath, new_best_filepath)
 
-    # add geometry config to saved weights for pose estimation task
-    if task_type == "pose estimation":
-        for obj_class in project_meta.obj_classes:
-            if obj_class.geometry_type.geometry_name() == "graph" and obj_class.name in selected_classes:
-                geometry_config = obj_class.geometry_config
-                break
-        weights_filepath = os.path.join(local_artifacts_dir, "weights", best_filename)
-        weights_dict = torch.load(weights_filepath)
-        weights_dict["geometry_config"] = geometry_config
-        torch.save(weights_dict, weights_filepath)
-
     # save link to app ui
     app_url = f"/apps/sessions/{g.app_session_id}"
     app_link_path = os.path.join(local_artifacts_dir, "open_app.lnk")
@@ -1750,7 +1528,7 @@ def auto_train(request: Request):
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        "/yolov8_train", task_type, project_info.name, str(g.app_session_id)
+        "/yolov5_train", task_type, project_info.name, str(g.app_session_id)
     )
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):

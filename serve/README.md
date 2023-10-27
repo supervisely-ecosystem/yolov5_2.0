@@ -22,9 +22,9 @@
 
 # Overview
 
-YOLOv8 is a powerful neural network architecture which provides both decent accuracy of predictions and high speed of inference. In comparison to YOLOv5, YOLOv8 uses anchor-free head (it allows to speed up non-max suppression (NMS) process), new backbone and new loss functions.
+YOLOv5 is a powerful neural network architecture which provides both decent accuracy of predictions and high speed of inference.
 
-This app allows to apply YOLOv8 models to images and videos. App supports both models pretrained on COCO and models trained on custom datasets. Supported task types are object detection, instance segmentation and pose estimation.
+This app allows to apply YOLOv8 models to images and videos. App supports both models pretrained on COCO and models trained on custom datasets. Supported task type is object detection.
 
 🔥🔥🔥 Check out our [youtube tutorial](https://youtu.be/Rsr8xWJ6s9I) and the [complete guide in our blog](https://supervisely.com/blog/train-yolov8-on-custom-data-no-code/):   
 
@@ -50,7 +50,7 @@ https://user-images.githubusercontent.com/91027877/249001911-d92ac00e-bfa7-448d-
 
 # Example: apply YOLOv8 to image in labeling tool
 
-Run **NN Image Labeling** app, connect to YOLOv8 app session, and click on "Apply model to image", or if you want to apply model only to the region within the bounding box, select the bbox and click on "Apply model to ROI":
+Run **NN Image Labeling** app, connect to YOLOv5 app session, and click on "Apply model to image", or if you want to apply model only to the region within the bounding box, select the bbox and click on "Apply model to ROI":
 
 https://user-images.githubusercontent.com/91027877/249003695-a1c0e6bb-8783-448f-86c0-0d8a4eccfae0.mp4
 
@@ -66,7 +66,7 @@ https://user-images.githubusercontent.com/91027877/249004380-e8a4758b-0356-4efc-
 - [Apply NN to Videos Project](https://ecosystem.supervise.ly/apps/apply-nn-to-videos-project) - app allows to label your videos using served Supervisely models.  
   <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/apply-nn-to-videos-project" src="https://imgur.com/LDo8K1A.png" height="70px" margin-bottom="20px" />
 
-- [Train YOLOv8](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/yolov8/train) - app allows to create custom YOLOv8 weights through training process.
+- [Train YOLOv8](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/yolov8/train) - app allows to create custom YOLOv5 weights through training process.
     <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/yolov8/train" src="https://github.com/supervisely-ecosystem/yolov8/assets/115161827/82348f9a-38fc-4736-885c-d6786e37a218" height="70px" margin-bottom="20px"/>
 
 - [Export to YOLOv8 format](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/export-to-yolov8) - transform annotations from Supervisely format to YOLOv8 format.
@@ -74,7 +74,7 @@ https://user-images.githubusercontent.com/91027877/249004380-e8a4758b-0356-4efc-
     
 # Acknowledgment
 
-This app is based on the great work `YOLOv8` ([github](https://github.com/ultralytics/ultralytics)). ![GitHub Org's stars](https://img.shields.io/github/stars/ultralytics/ultralytics?style=social)
+This app is based on the great work `YOLOv5` ([github](https://github.com/ultralytics/ultralytics)). ![GitHub Org's stars](https://img.shields.io/github/stars/ultralytics/ultralytics?style=social)
 
 
 
