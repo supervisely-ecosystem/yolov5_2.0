@@ -1,17 +1,14 @@
 {
-  "name": "Serve YOLOv5",
+  "name": "Serve YOLOv5 2.0",
   "type": "app",
   "version": "2.0.0",
-  "description": "Deploy YOLOv5 as REST API service",
+  "description": "Deploy YOLOv5 2.0 as REST API service",
   "categories": [
     "neural network",
     "images",
     "object detection",
     "serve"
   ],
-  "icon": "https://github-production-user-asset-6210df.s3.amazonaws.com/12828725/248305683-9342e4f8-a308-4f9d-b97f-6f8257b259a8.png",
-  "icon_cover": true,
-  "poster": "https://github.com/supervisely-ecosystem/yolov8/assets/12828725/3593ebe9-cdd8-4265-8217-f5781b6fb860",
   "need_gpu": false,
   "gpu": "preferred",
   "session_tags": [
