@@ -1,3 +1,5 @@
+<div align="center" markdown>
+<img src="https://github.com/supervisely-ecosystem/yolov8/assets/12828725/3593ebe9-cdd8-4265-8217-f5781b6fb860"/>  
 
 # Serve YOLOv5 2.0
 
@@ -23,9 +25,43 @@ This app allows to use updated YOLOv5 checkpoints, which show better performance
 
 # How To Run
 
-# Example: apply YOLOv5 2.0 to image in labeling tool
+## Pretrained models
+
+**Step 1.** Select pretrained model architecture and press the **Serve** button
+
+![screenshot-dev-supervise-ly-apps-9988-sessions-46331-1698920936898](https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/4e9333dd-8be6-45c8-a7e1-f5bc60dfed97)
+
+**Step 2.** Wait for the model to deploy
+
+![screenshot-dev-supervise-ly-apps-9988-sessions-46331-1698920945183](https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/c050c7eb-0d16-44c0-94cd-05303af0b48e)
+
+## Custom models
+
+Copy model file path from Team Files and select task type:
+
+todo
+
+# Example: apply YOLOv5 to image in labeling tool
+
+Run **NN Image Labeling** app, connect to YOLOv5 app session, and click on "Apply model to image", or if you want to apply model only to the region within the bounding box, select the bbox and click on "Apply model to ROI":
+
+todo
+
+If you want to change model specific inference settings while working with the model in image labeling interface, go to **inference** tab in the settings section of **Apps** window, and change the parameters:
+
+todo
 
 # Related apps
+
+- [NN Image Labeling](https://ecosystem.supervise.ly/apps/supervisely-ecosystem%252Fnn-image-labeling%252Fannotation-tool) - integrate any deployed NN to Supervisely Image Labeling UI. Configure inference settings and model output classes. Press `Apply` button (or use hotkey) and detections with their confidences will immediately appear on the image.   
+    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/nn-image-labeling/annotation-tool" src="https://i.imgur.com/hYEucNt.png" height="70px" margin-bottom="20px"/>
+
+- [Apply NN to Videos Project](https://ecosystem.supervise.ly/apps/apply-nn-to-videos-project) - app allows to label your videos using served Supervisely models.  
+  <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/apply-nn-to-videos-project" src="https://imgur.com/LDo8K1A.png" height="70px" margin-bottom="20px" />
+
+- [Train YOLOv5](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/yolov5_2.0/train) - app allows to create custom YOLOv5 weights through training process.
+    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/yolov5_2.0/train" src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/b9352f75-f3c4-485c-a763-91a7f8401f09" height="70px" margin-bottom="20px"/>
+
     
 # Acknowledgment
 
