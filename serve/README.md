@@ -1,5 +1,5 @@
 <div align="center" markdown>
-<img src="https://github.com/supervisely-ecosystem/yolov8/assets/12828725/3593ebe9-cdd8-4265-8217-f5781b6fb860"/>  
+<img src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/b31718cf-560a-4924-b048-dbfc57748898"/>  
 
 # Serve YOLOv5 2.0
 
