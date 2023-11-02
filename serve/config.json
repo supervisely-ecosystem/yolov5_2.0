@@ -3,6 +3,9 @@
   "type": "app",
   "version": "2.0.0",
   "description": "Deploy YOLOv5 2.0 as REST API service",
+  "poster": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/b31718cf-560a-4924-b048-dbfc57748898",
+  "icon": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/35578605-1c8e-4c04-a553-2b530e9fa15d",
+  "icon_cover": true,
   "categories": [
     "neural network",
     "images",
