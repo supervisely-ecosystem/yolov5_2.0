@@ -59,7 +59,7 @@ todo
 - [Apply NN to Videos Project](https://ecosystem.supervise.ly/apps/apply-nn-to-videos-project) - app allows to label your videos using served Supervisely models.  
   <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/apply-nn-to-videos-project" src="https://imgur.com/LDo8K1A.png" height="70px" margin-bottom="20px" />
 
-- [Train YOLOv5](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/yolov5_2.0/train) - app allows to create custom YOLOv5 weights through training process.
+- [Train YOLOv5 2.0](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/yolov5_2.0/train) - app allows to create custom YOLOv5 weights through training process.
     <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/yolov5_2.0/train" src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/b9352f75-f3c4-485c-a763-91a7f8401f09" height="70px" margin-bottom="20px"/>
 
     
