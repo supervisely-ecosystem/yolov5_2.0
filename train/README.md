@@ -1,4 +1,6 @@
+<div align="center" markdown>
 
+<img src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/eea6188c-ea1e-474d-b588-9ac5f6bc2685"/>
 
 # Train YOLOv5 2.0
 
@@ -24,9 +26,18 @@ This app allows to train YOLOv5 model on selected dataset using updated YOLOv5 c
 
 # How To Run
 
+Select images project, select GPU device in "Agent" field, click on RUN button:
+
+https://user-images.githubusercontent.com/91027877/249008934-293b3176-d5f3-4edb-9816-15bffd3bb869.mp4
+
 # Related apps
-  
+
+- [Serve YOLOv5 2.0](https://ecosystem.supervise.ly/apps/yolov5_2.0/serve) - app allows to deploy YOLOv8 model as REST API service.   
+    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/yolov5_2.0/serve" src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/90815cf8-7071-4215-9fe0-d9f1c4050e57" height="70px" margin-bottom="20px"/>
+    
 # Screenshot
+
+todo
 
 # Acknowledgment
 
