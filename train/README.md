@@ -37,7 +37,8 @@ https://user-images.githubusercontent.com/91027877/249008934-293b3176-d5f3-4edb-
     
 # Screenshot
 
-todo
+![screencapture-dev-supervise-ly-apps-9995-sessions-46469-2023-11-03-12_53_13](https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/22befebd-b36d-45a0-8b03-009c5e13587c)
+
 
 # Acknowledgment
 
