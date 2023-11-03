@@ -45,11 +45,12 @@ todo
 
 Run **NN Image Labeling** app, connect to YOLOv5 app session, and click on "Apply model to image", or if you want to apply model only to the region within the bounding box, select the bbox and click on "Apply model to ROI":
 
-todo
+https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/e81d353d-820f-46ec-b5bb-5470d4f19cfe
 
 If you want to change model specific inference settings while working with the model in image labeling interface, go to **inference** tab in the settings section of **Apps** window, and change the parameters:
-
-todo
+<p align="center">
+<img src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/e037223a-f6d3-4725-be70-a7ef743e13ff" width=50% />
+</p>
 
 # Related apps
 
