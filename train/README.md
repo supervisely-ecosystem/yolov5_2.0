@@ -22,7 +22,7 @@
 
 # Overview
 
-This app allows to train YOLOv5 model on selected dataset using updated YOLOv5 checkpoints, which show better performance in comparison to thier previous versions. You can define model checkpoint, data split method, training hyperparameters, data augmentation and many other features related to model training. App supports both models pretrained on COCO and models trained on custom datasets. Supported task types are object detection, instance segmentation and pose estimation.
+This app allows to train YOLOv5 model on selected dataset using updated YOLOv5 checkpoints, which show better performance in comparison to thier previous versions. You can define model checkpoint, data split method, training hyperparameters, data augmentation and many other features related to model training. App supports both models pretrained on COCO and models trained on custom datasets.
 
 # How To Run
 
