@@ -1081,7 +1081,7 @@ def start_training():
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        "/yolov5_train/object detection/", project_info.name, str(g.app_session_id)
+        "/yolov5_2.0_train/", project_info.name, str(g.app_session_id)
     )
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
