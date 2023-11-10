@@ -741,13 +741,11 @@ def change_logs_visibility():
 @start_training_button.click
 def start_training():
     task_type = "object detection"
-    if sly.is_production():
-        local_dir = g.root_source_path
-    else:
-        local_dir = g.app_root_directory
+    local_dir = g.root_model_checkpoint_dir
 
     necessary_geometries = ["rectangle"]
-    local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
+    checkpoint_dir = os.path.join(local_dir, "detect")
+    local_artifacts_dir = os.path.join(local_dir, "detect", "train")
 
     sly.logger.info(f"Local artifacts dir: {local_artifacts_dir}")
 
@@ -1009,14 +1007,15 @@ def start_training():
 
     def stop_on_batch_end_if_needed(*args, **kwargs):
         if app.app_is_stopped():
-            raise app.StopAppError("This error is expected.")
+            raise app.StopApp("This error is expected.")
 
     model.add_callback("on_train_batch_end", stop_on_batch_end_if_needed)
     model.add_callback("on_val_batch_end", stop_on_batch_end_if_needed)
 
-    with app.run_with_stop_app_error_suppression():
+    with app.run_with_stop_app_suppression():
         model.train(
             data=data_path,
+            project=checkpoint_dir,
             epochs=n_epochs_input.get_value(),
             patience=patience_input.get_value(),
             batch=batch_size_input.get_value(),
@@ -1221,13 +1220,11 @@ def auto_train(request: Request):
     card_train_progress.unlock()
     card_train_progress.uncollapse()
 
-    if sly.is_production():
-        local_dir = g.root_source_path
-    else:
-        local_dir = g.app_root_directory
+    local_dir = g.root_model_checkpoint_dir
 
     necessary_geometries = ["rectangle"]
-    local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
+    checkpoint_dir = os.path.join(local_dir, "detect")
+    local_artifacts_dir = os.path.join(local_dir, "detect", "train")
 
     sly.logger.info(f"Local artifacts dir: {local_artifacts_dir}")
 
@@ -1444,6 +1441,7 @@ def auto_train(request: Request):
 
     model.train(
         data=data_path,
+        project=checkpoint_dir,
         epochs=state.get("n_epochs", n_epochs_input.get_value()),
         patience=state.get("patience", patience_input.get_value()),
         batch=state.get("batch_size", batch_size_input.get_value()),
