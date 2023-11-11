@@ -741,13 +741,11 @@ def change_logs_visibility():
 @start_training_button.click
 def start_training():
     task_type = "object detection"
-    if sly.is_production():
-        local_dir = g.root_source_path
-    else:
-        local_dir = g.app_root_directory
+    local_dir = g.root_model_checkpoint_dir
 
     necessary_geometries = ["rectangle"]
-    local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
+    checkpoint_dir = os.path.join(local_dir, "detect")
+    local_artifacts_dir = os.path.join(local_dir, "detect", "train")
 
     sly.logger.info(f"Local artifacts dir: {local_artifacts_dir}")
 
@@ -972,6 +970,11 @@ def start_training():
 
     def watcher_func():
         watcher.watch()
+    
+    def disable_watcher():
+        watcher.running = False
+
+    app.call_before_shutdown(disable_watcher)
 
     threading.Thread(target=watcher_func, daemon=True).start()
     if len(train_set) > 300:
@@ -994,22 +997,37 @@ def start_training():
 
         def train_batch_watcher_func():
             train_batch_watcher.watch()
+        
+        def train_batch_watcher_disable():
+            train_batch_watcher.running = False
+
+        app.call_before_shutdown(train_batch_watcher_disable)
 
         threading.Thread(target=train_batch_watcher_func, daemon=True).start()
 
-    model.train(
-        data=data_path,
-        epochs=n_epochs_input.get_value(),
-        patience=patience_input.get_value(),
-        batch=batch_size_input.get_value(),
-        imgsz=image_size_input.get_value(),
-        save_period=1000,
-        device=device,
-        workers=n_workers_input.get_value(),
-        optimizer=select_optimizer.get_value(),
-        pretrained=pretrained,
-        **additional_params,
-    )
+    def stop_on_batch_end_if_needed(*args, **kwargs):
+        if app.app_is_stopped():
+            raise app.StopApp("This error is expected.")
+
+    model.add_callback("on_train_batch_end", stop_on_batch_end_if_needed)
+    model.add_callback("on_val_batch_end", stop_on_batch_end_if_needed)
+
+    with app.run_with_stop_app_suppression():
+        model.train(
+            data=data_path,
+            project=checkpoint_dir,
+            epochs=n_epochs_input.get_value(),
+            patience=patience_input.get_value(),
+            batch=batch_size_input.get_value(),
+            imgsz=image_size_input.get_value(),
+            save_period=1000,
+            device=device,
+            workers=n_workers_input.get_value(),
+            optimizer=select_optimizer.get_value(),
+            pretrained=pretrained,
+            **additional_params,
+        )
+
     progress_bar_iters.hide()
     progress_bar_epochs.hide()
     watcher.running = False
@@ -1202,13 +1220,11 @@ def auto_train(request: Request):
     card_train_progress.unlock()
     card_train_progress.uncollapse()
 
-    if sly.is_production():
-        local_dir = g.root_source_path
-    else:
-        local_dir = g.app_root_directory
+    local_dir = g.root_model_checkpoint_dir
 
     necessary_geometries = ["rectangle"]
-    local_artifacts_dir = os.path.join(local_dir, "runs", "detect", "train")
+    checkpoint_dir = os.path.join(local_dir, "detect")
+    local_artifacts_dir = os.path.join(local_dir, "detect", "train")
 
     sly.logger.info(f"Local artifacts dir: {local_artifacts_dir}")
 
@@ -1425,6 +1441,7 @@ def auto_train(request: Request):
 
     model.train(
         data=data_path,
+        project=checkpoint_dir,
         epochs=state.get("n_epochs", n_epochs_input.get_value()),
         patience=state.get("patience", patience_input.get_value()),
         batch=state.get("batch_size", batch_size_input.get_value()),
