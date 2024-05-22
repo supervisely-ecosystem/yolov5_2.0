@@ -1,16 +1,18 @@
 import os
 from pathlib import Path
 
-import supervisely as sly
 import torch
 from dotenv import load_dotenv
-from supervisely.annotation.obj_class import ObjClass
-from supervisely.app.widgets import Field, RadioGroup
-from supervisely.imaging.color import get_predefined_colors
-from supervisely.nn.prediction_dto import (PredictionBBox, PredictionKeypoints,
-                                           PredictionMask)
-from supervisely.project.project_meta import ProjectMeta
+from src.models import models as yolov5_models
 from ultralytics import YOLO
+
+import supervisely as sly
+from supervisely.app.widgets import (
+    CustomModelsSelector,
+    PretrainedModelsSelector,
+    RadioTabs,
+)
+from supervisely.nn.prediction_dto import PredictionBBox
 
 try:
     from typing import Literal
@@ -18,51 +20,91 @@ except ImportError:
     # for compatibility with python 3.7
     from typing_extensions import Literal
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
-import numpy as np
-
-#load_dotenv("local.env")
+load_dotenv("local.env")
 load_dotenv(os.path.expanduser("~/supervisely.env"))
+
 root_source_path = str(Path(__file__).parents[2])
-det_models_data_path = os.path.join(root_source_path, "models", "det_models_data.json")
-det_models_data = sly.json.load_json_file(det_models_data_path)
+
+api = sly.Api.from_env()
+team_id = sly.env.team_id()
 
 
 class YOLOv5Model(sly.nn.inference.ObjectDetection):
-    def get_models(self):
-        return det_models_data
+    def initialize_custom_gui(self):
+        """Create custom GUI layout for model selection. This method is called once when the application is started."""
+        self.pretrained_models_table = PretrainedModelsSelector(yolov5_models)
+        custom_models = sly.nn.checkpoints.yolov5_v2.get_list(api, team_id)
+        self.custom_models_table = CustomModelsSelector(
+            team_id,
+            custom_models,
+            show_custom_checkpoint_path=True,
+            custom_checkpoint_task_types=["object detection"],
+        )
 
-    def load_on_device(
-        self,
-        model_dir,
-        device: Literal["cpu", "cuda", "cuda:0", "cuda:1", "cuda:2", "cuda:3"] = "cpu",
-    ):
-        model_source = self.gui.get_model_source()
+        self.model_source_tabs = RadioTabs(
+            titles=["Pretrained models", "Custom models"],
+            descriptions=[
+                "Publicly available models",
+                "Models trained by you in Supervisely",
+            ],
+            contents=[self.pretrained_models_table, self.custom_models_table],
+        )
+        return self.model_source_tabs
+
+    def get_params_from_gui(self) -> dict:
+        model_source = self.model_source_tabs.get_active_tab()
+        self.device = self.gui.get_device()
         if model_source == "Pretrained models":
-            selected_model = self.gui.get_checkpoint_info()["Model"]
-            model_filename = selected_model.lower() + ".pt"
-            weights_url = (
-                f"https://github.com/ultralytics/assets/releases/download/v0.0.0/{model_filename}"
-            )
-            weights_dst_path = os.path.join(model_dir, model_filename)
-            if not sly.fs.file_exists(weights_dst_path):
-                self.download(
-                    src_path=weights_url,
-                    dst_path=weights_dst_path,
-                )
+            model_params = self.pretrained_models_table.get_selected_model_params()
         elif model_source == "Custom models":
-            custom_link = self.gui.get_custom_link()
-            weights_file_name = os.path.basename(custom_link)
-            weights_dst_path = os.path.join(model_dir, weights_file_name)
-            if not sly.fs.file_exists(weights_dst_path):
-                self.download(
-                    src_path=custom_link,
-                    dst_path=weights_dst_path,
-                )
-        self.model = YOLO(weights_dst_path)
+            model_params = self.custom_models_table.get_selected_model_params()
+
+        self.task_type = model_params.get("task_type")
+        deploy_params = {"device": self.device, **model_params}
+        return deploy_params
+
+    def load_model_meta(self):
         self.class_names = list(self.model.names.values())
-        self.task_type = "object detection"
+        obj_classes = [sly.ObjClass(name, sly.Rectangle) for name in self.class_names]
+        self._model_meta = sly.ProjectMeta(
+            obj_classes=sly.ObjClassCollection(obj_classes)
+        )
+        self._get_confidence_tag_meta()
+
+    def load_model(
+        self,
+        device: Literal["cpu", "cuda", "cuda:0", "cuda:1", "cuda:2", "cuda:3"],
+        model_source: Literal["Pretrained models", "Custom models"],
+        task_type: Literal[
+            "object detection", "instance segmentation", "pose estimation"
+        ],
+        checkpoint_name: str,
+        checkpoint_url: str,
+    ):
+        """
+        Load model method is used to deploy model.
+
+        :param model_source: Specifies whether the model is pretrained or custom.
+        :type model_source: Literal["Pretrained models", "Custom models"]
+        :param device: The device on which the model will be deployed.
+        :type device: Literal["cpu", "cuda", "cuda:0", "cuda:1", "cuda:2", "cuda:3"]
+        :param task_type: The type of task the model is designed for.
+        :type task_type: Literal["object detection", "instance segmentation", "pose estimation"]
+        :param checkpoint_name: The name of the checkpoint from which the model is loaded.
+        :type checkpoint_name: str
+        :param checkpoint_url: The URL where the model can be downloaded.
+        :type checkpoint_url: str
+        """
+        self.task_type = task_type
+        local_weights_path = os.path.join(self.model_dir, checkpoint_name)
+        if not sly.fs.file_exists(local_weights_path):
+            self.download(
+                src_path=checkpoint_url,
+                dst_path=local_weights_path,
+            )
+        self.model = YOLO(local_weights_path)
         if device.startswith("cuda"):
             if device == "cuda":
                 self.device = 0
@@ -71,12 +113,8 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
         else:
             self.device = "cpu"
         self.model.to(self.device)
-        print(f"✅ Model has been successfully loaded on {device.upper()} device")
+        self.load_model_meta(model_source, local_weights_path)
 
-        obj_classes = [sly.ObjClass(name, sly.Rectangle) for name in self.class_names]
-        self._model_meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes))
-        self._get_confidence_tag_meta()
-        
     def get_info(self):
         info = super().get_info()
         info["task type"] = self.task_type
@@ -131,13 +169,17 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
                 int(box[5]),
             )
             bbox = [top, left, bottom, right]
-            results.append(PredictionBBox(self.class_names[cls_index], bbox, confidence))
+            results.append(
+                PredictionBBox(self.class_names[cls_index], bbox, confidence)
+            )
         return results
 
 
 m = YOLOv5Model(
     use_gui=True,
-    custom_inference_settings=os.path.join(root_source_path, "serve", "custom_settings.yaml"),
+    custom_inference_settings=os.path.join(
+        root_source_path, "serve", "custom_settings.yaml"
+    ),
 )
 
 if sly.is_production():
@@ -145,7 +187,8 @@ if sly.is_production():
 else:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
-    m.load_on_device(m.model_dir, device)
+    deploy_params = m.get_params_from_gui()
+    m.load_model(**deploy_params)
     image_path = "./demo_data/image_01.jpg"
     settings = {
         "conf": 0.25,
