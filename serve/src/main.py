@@ -99,7 +99,10 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
         """
         self.task_type = task_type
         local_weights_path = os.path.join(self.model_dir, checkpoint_name)
-        if not sly.fs.file_exists(local_weights_path):
+        if (
+            not sly.fs.file_exists(local_weights_path)
+            or model_source == "Custom models"
+        ):
             self.download(
                 src_path=checkpoint_url,
                 dst_path=local_weights_path,
@@ -113,7 +116,7 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
         else:
             self.device = "cpu"
         self.model.to(self.device)
-        self.load_model_meta(model_source, local_weights_path)
+        self.load_model_meta()
 
     def get_info(self):
         info = super().get_info()
