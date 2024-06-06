@@ -17,7 +17,7 @@ import torch
 import yaml
 from dotenv import load_dotenv
 from fastapi import Request, Response
-from supervisely.nn.checkpoints.yolov5 import YOLOv5Checkpoint
+from supervisely.nn.checkpoints.yolov5 import YOLOv5v2Checkpoint
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -89,7 +89,7 @@ dataset_id = sly.env.dataset_id(raise_not_found=False)
 dataset_ids = [dataset_id] if dataset_id else []
 update_globals(dataset_ids)
 
-checkpoint = YOLOv5Checkpoint(team_id)
+checkpoint = YOLOv5v2Checkpoint(team_id)
 model_dir = checkpoint.get_model_dir()
 
 sly.logger.info(f"App root directory: {g.app_root_directory}")
