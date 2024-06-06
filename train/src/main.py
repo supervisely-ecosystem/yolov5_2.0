@@ -1220,7 +1220,7 @@ def start_training():
     )
     # generate metadata file
     checkpoint.generate_sly_metadata(
-        app_name="Train YOLOv5 2.0",
+        app_name=checkpoint.app_name,
         session_id=g.app_session_id,
         session_path=remote_artifacts_dir,
         weights_dir=remote_weights_dir,
@@ -1717,7 +1717,7 @@ def auto_train(request: Request):
     # generate metadata file
         # generate metadata file
     checkpoint.generate_sly_metadata(
-        app_name="Train YOLOv5 2.0",
+        app_name=checkpoint.app_name,
         session_id=g.app_session_id,
         session_path=remote_artifacts_dir,
         weights_dir=remote_weights_dir,
