@@ -17,14 +17,36 @@ import torch
 import yaml
 from dotenv import load_dotenv
 from fastapi import Request, Response
-from supervisely.app.widgets import (Button, Card, Checkbox, ClassesTable,
-                                     Container, DoneLabel, Editor, Field,
-                                     FileThumbnail, Flexbox, FolderThumbnail,
-                                     GridGallery, GridPlot, Image, Input,
-                                     InputNumber, NotificationBox, Progress,
-                                     RadioGroup, RadioTable, RadioTabs,
-                                     SelectDataset, SelectString, Stepper,
-                                     TaskLogs, TrainValSplits, Text)
+from supervisely.nn.checkpoints.yolov5 import YOLOv5Checkpoint
+from supervisely.app.widgets import (
+    Button,
+    Card,
+    Checkbox,
+    ClassesTable,
+    Container,
+    DoneLabel,
+    Editor,
+    Field,
+    FileThumbnail,
+    Flexbox,
+    FolderThumbnail,
+    GridGallery,
+    GridPlot,
+    Image,
+    Input,
+    InputNumber,
+    NotificationBox,
+    Progress,
+    RadioGroup,
+    RadioTable,
+    RadioTabs,
+    SelectDataset,
+    SelectString,
+    Stepper,
+    TaskLogs,
+    TrainValSplits,
+    Text,
+)
 from ultralytics import YOLO
 
 import src.globals as g
@@ -71,8 +93,12 @@ sly.logger.info(f"App root directory: {g.app_root_directory}")
 
 
 ### 1. Dataset selection
-dataset_selector = SelectDataset(project_id=project_id, multiselect=True, select_all_datasets=False) # there is a bug when True
-use_cache_text = Text("Use cached data stored on the agent to optimize project downlaod")
+dataset_selector = SelectDataset(
+    project_id=project_id, multiselect=True, select_all_datasets=False
+)  # there is a bug when True
+use_cache_text = Text(
+    "Use cached data stored on the agent to optimize project downlaod"
+)
 use_cache_checkbox = Checkbox(use_cache_text, checked=True)
 select_data_button = Button("Select data")
 select_done = DoneLabel("Successfully selected input data")
@@ -93,7 +119,9 @@ project_settings_content = Container(
         reselect_data_button,
     ]
 )
-card_project_settings = Card(title="Dataset selection", content=project_settings_content)
+card_project_settings = Card(
+    title="Dataset selection", content=project_settings_content
+)
 
 
 ### 2. Project classes
@@ -111,7 +139,7 @@ classes_done = DoneLabel()
 classes_done.hide()
 classes_content = Container(
     [
-        #task_type_select_f,
+        # task_type_select_f,
         classes_table,
         select_classes_button,
         select_other_classes_button,
@@ -131,7 +159,9 @@ card_classes.lock()
 
 ### 3. Train / validation split
 train_val_split = TrainValSplits(project_id=project_id)
-unlabeled_images_select = SelectString(values=["keep unlabeled images", "ignore unlabeled images"])
+unlabeled_images_select = SelectString(
+    values=["keep unlabeled images", "ignore unlabeled images"]
+)
 unlabeled_images_select_f = Field(
     content=unlabeled_images_select,
     title="What to do with unlabeled images",
@@ -402,10 +432,14 @@ additional_gallery = GridGallery(
     show_opacity_slider=False,
     enable_zoom=True,
 )
-additional_gallery_f = Field(additional_gallery, "Additional training results visualization")
+additional_gallery_f = Field(
+    additional_gallery, "Additional training results visualization"
+)
 additional_gallery_f.hide()
 progress_bar_upload_artifacts = Progress()
-train_done = DoneLabel("Training completed. Training artifacts were uploaded to Team Files")
+train_done = DoneLabel(
+    "Training completed. Training artifacts were uploaded to Team Files"
+)
 train_done.hide()
 train_progress_content = Container(
     [
@@ -486,14 +520,20 @@ def on_dataset_selected(new_dataset_ids):
         select_data_button.show()
     update_globals(new_dataset_ids)
     if sly.project.download.is_cached(project_id):
-        use_cache_text.text = "Use cached data stored on the agent to optimize project downlaod"
+        use_cache_text.text = (
+            "Use cached data stored on the agent to optimize project downlaod"
+        )
     else:
-        use_cache_text.text = "Cache data on the agent to optimize project download for future trainings"
+        use_cache_text.text = (
+            "Cache data on the agent to optimize project download for future trainings"
+        )
 
 
 @select_data_button.click
 def select_input_data():
-    project_shapes = [cls.geometry_type.geometry_name() for cls in project_meta.obj_classes]
+    project_shapes = [
+        cls.geometry_type.geometry_name() for cls in project_meta.obj_classes
+    ]
 
     select_data_button.loading = True
     dataset_selector.disable()
@@ -534,6 +574,7 @@ def on_classes_selected(selected_classes):
     else:
         select_classes_button.hide()
 
+
 """
 @task_type_select.value_changed
 def select_task(task_type):
@@ -551,6 +592,7 @@ def select_task(task_type):
     )
 """
 
+
 @select_classes_button.click
 def select_classes():
     n_classes = len(classes_table.get_selected_classes())
@@ -562,7 +604,7 @@ def select_classes():
     classes_done.show()
     select_other_classes_button.show()
     classes_table.disable()
-    #task_type_select.disable()
+    # task_type_select.disable()
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
@@ -578,7 +620,7 @@ def select_classes():
 @select_other_classes_button.click
 def select_other_classes():
     classes_table.enable()
-    #task_type_select.enable()
+    # task_type_select.enable()
     select_other_classes_button.hide()
     classes_done.hide()
     select_classes_button.show()
@@ -652,7 +694,9 @@ def change_file_preview(value):
 @additional_config_radio.value_changed
 def change_radio(value):
     if value == "import template from Team Files":
-        remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
+        remote_templates_dir = os.path.join(
+            "/yolov5_train/object detection/", "param_templates"
+        )
         templates = api.file.list(team_id, remote_templates_dir)
         if len(templates) == 0:
             no_templates_notification.show()
@@ -667,7 +711,9 @@ def change_radio(value):
 
 @additional_config_template_select.value_changed
 def change_template(template):
-    remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
+    remote_templates_dir = os.path.join(
+        "/yolov5_train/object detection/", "param_templates"
+    )
     remote_template_path = os.path.join(remote_templates_dir, template)
     local_template_path = os.path.join(g.app_data_dir, template)
     api.file.download(team_id, remote_template_path, local_template_path)
@@ -679,7 +725,9 @@ def change_template(template):
 @save_template_button.click
 def upload_template():
     save_template_button.loading = True
-    remote_templates_dir = os.path.join("/yolov5_train/object detection/", "param_templates")
+    remote_templates_dir = os.path.join(
+        "/yolov5_train/object detection/", "param_templates"
+    )
     additional_params = train_settings_editor.get_text()
     ryaml = ruamel.yaml.YAML()
     additional_params = ryaml.load(additional_params)
@@ -763,7 +811,9 @@ def start_training():
         sly.fs.remove_dir(local_artifacts_dir)
     start_training_button.loading = True
     # get number of images in selected datasets
-    dataset_infos = [api.dataset.get_info_by_id(dataset_id) for dataset_id in dataset_ids]
+    dataset_infos = [
+        api.dataset.get_info_by_id(dataset_id) for dataset_id in dataset_ids
+    ]
     n_images = sum([info.images_count for info in dataset_infos])
     # download dataset
     download_project(
@@ -771,11 +821,13 @@ def start_training():
         project_info=project_info,
         dataset_infos=dataset_infos,
         use_cache=use_cache_checkbox.is_checked(),
-        progress=progress_bar_download_project
+        progress=progress_bar_download_project,
     )
     # remove unselected classes
     selected_classes = classes_table.get_selected_classes()
-    sly.Project.remove_classes_except(g.project_dir, classes_to_keep=selected_classes, inplace=True)
+    sly.Project.remove_classes_except(
+        g.project_dir, classes_to_keep=selected_classes, inplace=True
+    )
     # transfer project to detection task if necessary
     sly.Project.to_detection_task(g.project_dir, inplace=True)
     # remove unlabeled images if such option was selected by user
@@ -795,7 +847,9 @@ def start_training():
                     description="Val split length is 0 after ignoring images. Please check your data",
                     status="error",
                 )
-                raise ValueError("Val split length is 0 after ignoring images. Please check your data")
+                raise ValueError(
+                    "Val split length is 0 after ignoring images. Please check your data"
+                )
     # split the data
     train_val_split._project_fs = sly.Project(g.project_dir, sly.OpenMode.READ)
     train_set, val_set = train_val_split.get_splits()
@@ -898,7 +952,9 @@ def start_training():
     plot_notification.show()
     watch_file = os.path.join(local_artifacts_dir, "results.csv")
     plotted_train_batches = []
-    remote_images_path = f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+    remote_images_path = (
+        f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+    )
 
     def check_number(value):
         # if value is not str, NaN, infinity or negative infinity
@@ -939,7 +995,9 @@ def start_training():
             if check_number(float(train_kobj_loss)):
                 grid_plot.add_scalar("train/kobj loss", float(train_kobj_loss), int(x))
         if check_number(float(precision)):
-            grid_plot.add_scalar("precision & recall/precision", float(precision), int(x))
+            grid_plot.add_scalar(
+                "precision & recall/precision", float(precision), int(x)
+            )
         if check_number(float(recall)):
             grid_plot.add_scalar("precision & recall/recall", float(recall), int(x))
         if check_number(float(val_box_loss)):
@@ -954,10 +1012,16 @@ def start_training():
         # visualize train batch
         batch = f"train_batch{x}.jpg"
         local_train_batches_path = os.path.join(local_artifacts_dir, batch)
-        if os.path.exists(local_train_batches_path) and batch not in plotted_train_batches and x < 10:
+        if (
+            os.path.exists(local_train_batches_path)
+            and batch not in plotted_train_batches
+            and x < 10
+        ):
             plotted_train_batches.append(batch)
             remote_train_batches_path = os.path.join(remote_images_path, batch)
-            tf_train_batches_info = api.file.upload(team_id, local_train_batches_path, remote_train_batches_path)
+            tf_train_batches_info = api.file.upload(
+                team_id, local_train_batches_path, remote_train_batches_path
+            )
             train_batches_gallery.append(tf_train_batches_info.full_storage_url)
             if x == 0:
                 train_batches_gallery_f.show()
@@ -974,7 +1038,7 @@ def start_training():
 
     def watcher_func():
         watcher.watch()
-    
+
     def disable_watcher():
         watcher.running = False
 
@@ -1001,7 +1065,7 @@ def start_training():
 
         def train_batch_watcher_func():
             train_batch_watcher.watch()
-        
+
         def train_batch_watcher_disable():
             train_batch_watcher.running = False
 
@@ -1041,7 +1105,9 @@ def start_training():
         val_batch_labels_id, val_batch_preds_id = None, None
         labels_path = os.path.join(local_artifacts_dir, f"val_batch{i}_labels.jpg")
         if os.path.exists(labels_path):
-            remote_labels_path = os.path.join(remote_images_path, f"val_batch{i}_labels.jpg")
+            remote_labels_path = os.path.join(
+                remote_images_path, f"val_batch{i}_labels.jpg"
+            )
             tf_labels_info = api.file.upload(team_id, labels_path, remote_labels_path)
             val_batch_labels_id = val_batches_gallery.append(
                 image_url=tf_labels_info.full_storage_url,
@@ -1049,7 +1115,9 @@ def start_training():
             )
         preds_path = os.path.join(local_artifacts_dir, f"val_batch{i}_pred.jpg")
         if os.path.exists(preds_path):
-            remote_preds_path = os.path.join(remote_images_path, f"val_batch{i}_pred.jpg")
+            remote_preds_path = os.path.join(
+                remote_images_path, f"val_batch{i}_pred.jpg"
+            )
             tf_preds_info = api.file.upload(team_id, preds_path, remote_preds_path)
             val_batch_preds_id = val_batches_gallery.append(
                 image_url=tf_preds_info.full_storage_url,
@@ -1061,10 +1129,16 @@ def start_training():
             val_batches_gallery_f.show()
 
     # visualize additional training results
-    confusion_matrix_path = os.path.join(local_artifacts_dir, "confusion_matrix_normalized.png")
+    confusion_matrix_path = os.path.join(
+        local_artifacts_dir, "confusion_matrix_normalized.png"
+    )
     if os.path.exists(confusion_matrix_path):
-        remote_confusion_matrix_path = os.path.join(remote_images_path, "confusion_matrix_normalized.png")
-        tf_confusion_matrix_info = api.file.upload(team_id, confusion_matrix_path, remote_confusion_matrix_path)
+        remote_confusion_matrix_path = os.path.join(
+            remote_images_path, "confusion_matrix_normalized.png"
+        )
+        tf_confusion_matrix_info = api.file.upload(
+            team_id, confusion_matrix_path, remote_confusion_matrix_path
+        )
         additional_gallery.append(tf_confusion_matrix_info.full_storage_url)
         additional_gallery_f.show()
     pr_curve_path = os.path.join(local_artifacts_dir, "PR_curve.png")
@@ -1080,13 +1154,17 @@ def start_training():
     box_f1_curve_path = os.path.join(local_artifacts_dir, "BoxF1_curve.png")
     if os.path.exists(box_f1_curve_path):
         remote_box_f1_curve_path = os.path.join(remote_images_path, "BoxF1_curve.png")
-        tf_box_f1_curve_info = api.file.upload(team_id, box_f1_curve_path, remote_box_f1_curve_path)
+        tf_box_f1_curve_info = api.file.upload(
+            team_id, box_f1_curve_path, remote_box_f1_curve_path
+        )
         additional_gallery.append(tf_box_f1_curve_info.full_storage_url)
 
     # rename best checkpoint file
     results = pd.read_csv(watch_file)
     results.columns = [col.replace(" ", "") for col in results.columns]
-    results["fitness"] = (0.1 * results["metrics/mAP50(B)"]) + (0.9 * results["metrics/mAP50-95(B)"])
+    results["fitness"] = (0.1 * results["metrics/mAP50(B)"]) + (
+        0.9 * results["metrics/mAP50-95(B)"]
+    )
     print("Final results:")
     print(results)
     best_epoch = results["fitness"].idxmax()
@@ -1102,9 +1180,12 @@ def start_training():
         print(app_url, file=text_file)
 
     # upload training artifacts to team files
+    checkpoint = YOLOv5Checkpoint(team_id)
+    model_dir = checkpoint.get_model_dir()
     remote_artifacts_dir = os.path.join(
-        "/yolov5_2.0_train/", project_info.name, str(g.app_session_id)
+        model_dir, project_info.name, str(g.app_session_id)
     )
+    remote_weights_dir = os.path.join(remote_artifacts_dir, checkpoint.weights_dir)
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor.bytes_read
@@ -1134,7 +1215,20 @@ def start_training():
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
-    file_info = api.file.get_info_by_path(sly.env.team_id(), team_files_dir + "/results.csv")
+    file_info = api.file.get_info_by_path(
+        sly.env.team_id(), team_files_dir + "/results.csv"
+    )
+    # generate metadata file
+    checkpoint.generate_sly_metadata(
+        app_name="Train YOLOv5 2.0",
+        session_id=g.app_session_id,
+        session_path=remote_artifacts_dir,
+        weights_dir=remote_weights_dir,
+        training_project_name=project_info.name,
+        task_type=task_type,
+        config_path=None,
+    )
+
     train_artifacts_folder.set(file_info)
     # finish training
     start_training_button.loading = False
@@ -1166,7 +1260,7 @@ def auto_train(request: Request):
     dataset_selector.disable()
     if use_cache:
         use_cache_checkbox.check()
-    else: 
+    else:
         use_cache_checkbox.uncheck()
     use_cache_checkbox.disable()
     classes_table.read_project_from_id(project_id)
@@ -1183,13 +1277,13 @@ def auto_train(request: Request):
     classes_done.show()
     select_other_classes_button.show()
     classes_table.disable()
-    #task_type_select.disable()
+    # task_type_select.disable()
     curr_step = stepper.get_active_step()
     curr_step += 1
     stepper.set_active_step(curr_step)
     card_train_val_split.unlock()
     card_train_val_split.uncollapse()
-    
+
     train_val_split.disable()
     unlabeled_images_select.disable()
     split_data_button.hide()
@@ -1258,7 +1352,9 @@ def auto_train(request: Request):
     # download dataset
     if os.path.exists(g.project_dir):
         sly.fs.clean_dir(g.project_dir)
-    with progress_bar_download_project(message="Downloading input data...", total=n_images) as pbar:
+    with progress_bar_download_project(
+        message="Downloading input data...", total=n_images
+    ) as pbar:
         sly.download(
             api=api,
             project_id=project_id,
@@ -1287,6 +1383,7 @@ def auto_train(request: Request):
         progress_bar_convert_to_yolo,
         task_type,
     )
+
     # download model
     def download_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor
@@ -1348,7 +1445,9 @@ def auto_train(request: Request):
     plot_notification.show()
     watch_file = os.path.join(local_artifacts_dir, "results.csv")
     plotted_train_batches = []
-    remote_images_path = f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+    remote_images_path = (
+        f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+    )
 
     def check_number(value):
         # if value is not str, NaN, infinity or negative infinity
@@ -1389,7 +1488,9 @@ def auto_train(request: Request):
             if check_number(float(train_kobj_loss)):
                 grid_plot.add_scalar("train/kobj loss", float(train_kobj_loss), int(x))
         if check_number(float(precision)):
-            grid_plot.add_scalar("precision & recall/precision", float(precision), int(x))
+            grid_plot.add_scalar(
+                "precision & recall/precision", float(precision), int(x)
+            )
         if check_number(float(recall)):
             grid_plot.add_scalar("precision & recall/recall", float(recall), int(x))
         if check_number(float(val_box_loss)):
@@ -1404,10 +1505,16 @@ def auto_train(request: Request):
         # visualize train batch
         batch = f"train_batch{x}.jpg"
         local_train_batches_path = os.path.join(local_artifacts_dir, batch)
-        if os.path.exists(local_train_batches_path) and batch not in plotted_train_batches and x < 10:
+        if (
+            os.path.exists(local_train_batches_path)
+            and batch not in plotted_train_batches
+            and x < 10
+        ):
             plotted_train_batches.append(batch)
             remote_train_batches_path = os.path.join(remote_images_path, batch)
-            tf_train_batches_info = api.file.upload(team_id, local_train_batches_path, remote_train_batches_path)
+            tf_train_batches_info = api.file.upload(
+                team_id, local_train_batches_path, remote_train_batches_path
+            )
             train_batches_gallery.append(tf_train_batches_info.full_storage_url)
             if x == 0:
                 train_batches_gallery_f.show()
@@ -1466,7 +1573,9 @@ def auto_train(request: Request):
         momentum=state.get("momentum", additional_params["momentum"]),
         weight_decay=state.get("weight_decay", additional_params["weight_decay"]),
         warmup_epochs=state.get("warmup_epochs", additional_params["warmup_epochs"]),
-        warmup_momentum=state.get("warmup_momentum", additional_params["warmup_momentum"]),
+        warmup_momentum=state.get(
+            "warmup_momentum", additional_params["warmup_momentum"]
+        ),
         warmup_bias_lr=state.get("warmup_bias_lr", additional_params["warmup_bias_lr"]),
         amp=state.get("amp", additional_params["amp"]),
         hsv_h=state.get("hsv_h", additional_params["hsv_h"]),
@@ -1492,7 +1601,9 @@ def auto_train(request: Request):
         val_batch_labels_id, val_batch_preds_id = None, None
         labels_path = os.path.join(local_artifacts_dir, f"val_batch{i}_labels.jpg")
         if os.path.exists(labels_path):
-            remote_labels_path = os.path.join(remote_images_path, f"val_batch{i}_labels.jpg")
+            remote_labels_path = os.path.join(
+                remote_images_path, f"val_batch{i}_labels.jpg"
+            )
             tf_labels_info = api.file.upload(team_id, labels_path, remote_labels_path)
             val_batch_labels_id = val_batches_gallery.append(
                 image_url=tf_labels_info.full_storage_url,
@@ -1500,7 +1611,9 @@ def auto_train(request: Request):
             )
         preds_path = os.path.join(local_artifacts_dir, f"val_batch{i}_pred.jpg")
         if os.path.exists(preds_path):
-            remote_preds_path = os.path.join(remote_images_path, f"val_batch{i}_pred.jpg")
+            remote_preds_path = os.path.join(
+                remote_images_path, f"val_batch{i}_pred.jpg"
+            )
             tf_preds_info = api.file.upload(team_id, preds_path, remote_preds_path)
             val_batch_preds_id = val_batches_gallery.append(
                 image_url=tf_preds_info.full_storage_url,
@@ -1512,10 +1625,16 @@ def auto_train(request: Request):
             val_batches_gallery_f.show()
 
     # visualize additional training results
-    confusion_matrix_path = os.path.join(local_artifacts_dir, "confusion_matrix_normalized.png")
+    confusion_matrix_path = os.path.join(
+        local_artifacts_dir, "confusion_matrix_normalized.png"
+    )
     if os.path.exists(confusion_matrix_path):
-        remote_confusion_matrix_path = os.path.join(remote_images_path, "confusion_matrix_normalized.png")
-        tf_confusion_matrix_info = api.file.upload(team_id, confusion_matrix_path, remote_confusion_matrix_path)
+        remote_confusion_matrix_path = os.path.join(
+            remote_images_path, "confusion_matrix_normalized.png"
+        )
+        tf_confusion_matrix_info = api.file.upload(
+            team_id, confusion_matrix_path, remote_confusion_matrix_path
+        )
         additional_gallery.append(tf_confusion_matrix_info.full_storage_url)
         additional_gallery_f.show()
     pr_curve_path = os.path.join(local_artifacts_dir, "PR_curve.png")
@@ -1531,14 +1650,17 @@ def auto_train(request: Request):
     box_f1_curve_path = os.path.join(local_artifacts_dir, "BoxF1_curve.png")
     if os.path.exists(box_f1_curve_path):
         remote_box_f1_curve_path = os.path.join(remote_images_path, "BoxF1_curve.png")
-        tf_box_f1_curve_info = api.file.upload(team_id, box_f1_curve_path, remote_box_f1_curve_path)
+        tf_box_f1_curve_info = api.file.upload(
+            team_id, box_f1_curve_path, remote_box_f1_curve_path
+        )
         additional_gallery.append(tf_box_f1_curve_info.full_storage_url)
-
 
     # rename best checkpoint file
     results = pd.read_csv(watch_file)
     results.columns = [col.replace(" ", "") for col in results.columns]
-    results["fitness"] = (0.1 * results["metrics/mAP50(B)"]) + (0.9 * results["metrics/mAP50-95(B)"])
+    results["fitness"] = (0.1 * results["metrics/mAP50(B)"]) + (
+        0.9 * results["metrics/mAP50-95(B)"]
+    )
     print("Final results:")
     print(results)
     best_epoch = results["fitness"].idxmax()
@@ -1554,9 +1676,12 @@ def auto_train(request: Request):
         print(app_url, file=text_file)
 
     # upload training artifacts to team files
+    checkpoint = YOLOv5Checkpoint(team_id)
+    model_dir = checkpoint.get_model_dir()
     remote_artifacts_dir = os.path.join(
-        "/yolov5_2.0_train", project_info.name, str(g.app_session_id)
+        model_dir, project_info.name, str(g.app_session_id)
     )
+    remote_weights_dir = os.path.join(remote_artifacts_dir, checkpoint.weights_dir)
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor.bytes_read
@@ -1586,7 +1711,21 @@ def auto_train(request: Request):
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
-    file_info = api.file.get_info_by_path(sly.env.team_id(), team_files_dir + "/results.csv")
+    file_info = api.file.get_info_by_path(
+        sly.env.team_id(), team_files_dir + "/results.csv"
+    )
+    # generate metadata file
+        # generate metadata file
+    checkpoint.generate_sly_metadata(
+        app_name="Train YOLOv5 2.0",
+        session_id=g.app_session_id,
+        session_path=remote_artifacts_dir,
+        weights_dir=remote_weights_dir,
+        training_project_name=project_info.name,
+        task_type=task_type,
+        config_path=None,
+    )
+    
     train_artifacts_folder.set(file_info)
     # finish training
     start_training_button.loading = False

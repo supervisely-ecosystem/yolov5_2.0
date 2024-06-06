@@ -13,6 +13,7 @@ from supervisely.app.widgets import (
     RadioTabs,
 )
 from supervisely.nn.prediction_dto import PredictionBBox
+from supervisely.nn.checkpoints.yolov5 import YOLOv5Checkpoint
 
 try:
     from typing import Literal
@@ -35,7 +36,8 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
     def initialize_custom_gui(self):
         """Create custom GUI layout for model selection. This method is called once when the application is started."""
         self.pretrained_models_table = PretrainedModelsSelector(yolov5_models)
-        custom_models = sly.nn.checkpoints.yolov5_v2.get_list(api, team_id)
+        checkpoint = YOLOv5Checkpoint(team_id)
+        custom_models = checkpoint.get_list()
         self.custom_models_table = CustomModelsSelector(
             team_id,
             custom_models,
