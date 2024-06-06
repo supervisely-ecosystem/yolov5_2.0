@@ -1715,7 +1715,6 @@ def auto_train(request: Request):
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
     # generate metadata file
-        # generate metadata file
     checkpoint.generate_sly_metadata(
         app_name=checkpoint.app_name,
         session_id=g.app_session_id,
