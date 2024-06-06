@@ -89,6 +89,9 @@ dataset_id = sly.env.dataset_id(raise_not_found=False)
 dataset_ids = [dataset_id] if dataset_id else []
 update_globals(dataset_ids)
 
+checkpoint = YOLOv5Checkpoint(team_id)
+model_dir = checkpoint.get_model_dir()
+
 sly.logger.info(f"App root directory: {g.app_root_directory}")
 
 
@@ -695,7 +698,7 @@ def change_file_preview(value):
 def change_radio(value):
     if value == "import template from Team Files":
         remote_templates_dir = os.path.join(
-            "/yolov5_train/object detection/", "param_templates"
+            f"{model_dir}/object detection/", "param_templates"
         )
         templates = api.file.list(team_id, remote_templates_dir)
         if len(templates) == 0:
@@ -712,7 +715,7 @@ def change_radio(value):
 @additional_config_template_select.value_changed
 def change_template(template):
     remote_templates_dir = os.path.join(
-        "/yolov5_train/object detection/", "param_templates"
+        f"{model_dir}/object detection/", "param_templates"
     )
     remote_template_path = os.path.join(remote_templates_dir, template)
     local_template_path = os.path.join(g.app_data_dir, template)
@@ -726,7 +729,7 @@ def change_template(template):
 def upload_template():
     save_template_button.loading = True
     remote_templates_dir = os.path.join(
-        "/yolov5_train/object detection/", "param_templates"
+        f"{model_dir}/object detection/", "param_templates"
     )
     additional_params = train_settings_editor.get_text()
     ryaml = ruamel.yaml.YAML()
@@ -1180,8 +1183,6 @@ def start_training():
         print(app_url, file=text_file)
 
     # upload training artifacts to team files
-    checkpoint = YOLOv5Checkpoint(team_id)
-    model_dir = checkpoint.get_model_dir()
     remote_artifacts_dir = os.path.join(
         model_dir, project_info.name, str(g.app_session_id)
     )
@@ -1445,8 +1446,9 @@ def auto_train(request: Request):
     plot_notification.show()
     watch_file = os.path.join(local_artifacts_dir, "results.csv")
     plotted_train_batches = []
+    
     remote_images_path = (
-        f"/yolov5_train/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+        f"{model_dir}/{task_type}/{project_info.name}/images/{g.app_session_id}/"
     )
 
     def check_number(value):
@@ -1676,8 +1678,6 @@ def auto_train(request: Request):
         print(app_url, file=text_file)
 
     # upload training artifacts to team files
-    checkpoint = YOLOv5Checkpoint(team_id)
-    model_dir = checkpoint.get_model_dir()
     remote_artifacts_dir = os.path.join(
         model_dir, project_info.name, str(g.app_session_id)
     )
