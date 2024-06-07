@@ -17,7 +17,7 @@ import torch
 import yaml
 from dotenv import load_dotenv
 from fastapi import Request, Response
-from supervisely.nn.checkpoints.yolov5 import YOLOv5v2Checkpoint
+from supervisely.nn.models.yolov5 import YOLOv5v2
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -83,14 +83,14 @@ load_dotenv(os.path.expanduser("~/supervisely.env"))
 api = sly.Api()
 team_id = sly.env.team_id()
 
+sly_yolov5v2 = YOLOv5v2(team_id)
+model_dir = sly_yolov5v2.framework_dir
+
 # if app had started from context menu, one of this has to be set:
 project_id = sly.env.project_id(raise_not_found=False)
 dataset_id = sly.env.dataset_id(raise_not_found=False)
 dataset_ids = [dataset_id] if dataset_id else []
 update_globals(dataset_ids)
-
-checkpoint = YOLOv5v2Checkpoint(team_id)
-model_dir = checkpoint.get_model_dir()
 
 sly.logger.info(f"App root directory: {g.app_root_directory}")
 
@@ -1446,7 +1446,7 @@ def auto_train(request: Request):
     plot_notification.show()
     watch_file = os.path.join(local_artifacts_dir, "results.csv")
     plotted_train_batches = []
-    
+
     remote_images_path = (
         f"{model_dir}/{task_type}/{project_info.name}/images/{g.app_session_id}/"
     )
@@ -1724,7 +1724,7 @@ def auto_train(request: Request):
         task_type=task_type,
         config_path=None,
     )
-    
+
     train_artifacts_folder.set(file_info)
     # finish training
     start_training_button.loading = False
