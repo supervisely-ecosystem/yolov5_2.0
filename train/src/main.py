@@ -17,7 +17,7 @@ import torch
 import yaml
 from dotenv import load_dotenv
 from fastapi import Request, Response
-from supervisely.nn.models.yolov5 import YOLOv5v2
+from supervisely.nn.artifacts.yolov5 import YOLOv5v2
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -84,7 +84,7 @@ api = sly.Api()
 team_id = sly.env.team_id()
 
 sly_yolov5v2 = YOLOv5v2(team_id)
-model_dir = sly_yolov5v2.framework_dir
+framework_dir = sly_yolov5v2.framework_dir
 
 # if app had started from context menu, one of this has to be set:
 project_id = sly.env.project_id(raise_not_found=False)
@@ -698,7 +698,7 @@ def change_file_preview(value):
 def change_radio(value):
     if value == "import template from Team Files":
         remote_templates_dir = os.path.join(
-            f"{model_dir}/object detection/", "param_templates"
+            f"{framework_dir}/object detection/", "param_templates"
         )
         templates = api.file.list(team_id, remote_templates_dir)
         if len(templates) == 0:
@@ -715,7 +715,7 @@ def change_radio(value):
 @additional_config_template_select.value_changed
 def change_template(template):
     remote_templates_dir = os.path.join(
-        f"{model_dir}/object detection/", "param_templates"
+        f"{framework_dir}/object detection/", "param_templates"
     )
     remote_template_path = os.path.join(remote_templates_dir, template)
     local_template_path = os.path.join(g.app_data_dir, template)
@@ -729,7 +729,7 @@ def change_template(template):
 def upload_template():
     save_template_button.loading = True
     remote_templates_dir = os.path.join(
-        f"{model_dir}/object detection/", "param_templates"
+        f"{framework_dir}/object detection/", "param_templates"
     )
     additional_params = train_settings_editor.get_text()
     ryaml = ruamel.yaml.YAML()
@@ -1184,9 +1184,9 @@ def start_training():
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        model_dir, project_info.name, str(g.app_session_id)
+        framework_dir, project_info.name, str(g.app_session_id)
     )
-    remote_weights_dir = os.path.join(remote_artifacts_dir, checkpoint.weights_dir)
+    remote_weights_dir = sly_yolov5v2.get_weights_path(remote_artifacts_dir)
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor.bytes_read
@@ -1220,12 +1220,13 @@ def start_training():
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
     # generate metadata file
-    checkpoint.generate_sly_metadata(
-        app_name=checkpoint.app_name,
-        session_id=g.app_session_id,
-        session_path=remote_artifacts_dir,
-        weights_dir=remote_weights_dir,
-        training_project_name=project_info.name,
+    sly_yolov5v2.generate_metadata(
+        app_name=sly_yolov5v2.app_name,
+        task_id=g.app_session_id,
+        artifacts_folder=remote_artifacts_dir,
+        weights_folder=remote_weights_dir,
+        weights_ext=sly_yolov5v2.weights_ext,
+        project_name=project_info.name,
         task_type=task_type,
         config_path=None,
     )
@@ -1448,7 +1449,7 @@ def auto_train(request: Request):
     plotted_train_batches = []
 
     remote_images_path = (
-        f"{model_dir}/{task_type}/{project_info.name}/images/{g.app_session_id}/"
+        f"{framework_dir}/{task_type}/{project_info.name}/images/{g.app_session_id}/"
     )
 
     def check_number(value):
@@ -1679,9 +1680,9 @@ def auto_train(request: Request):
 
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
-        model_dir, project_info.name, str(g.app_session_id)
+        framework_dir, project_info.name, str(g.app_session_id)
     )
-    remote_weights_dir = os.path.join(remote_artifacts_dir, checkpoint.weights_dir)
+    remote_weights_dir = sly_yolov5v2.get_weights_path(remote_artifacts_dir)
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor.bytes_read
@@ -1715,12 +1716,13 @@ def auto_train(request: Request):
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
     # generate metadata file
-    checkpoint.generate_sly_metadata(
-        app_name=checkpoint.app_name,
-        session_id=g.app_session_id,
-        session_path=remote_artifacts_dir,
-        weights_dir=remote_weights_dir,
-        training_project_name=project_info.name,
+    sly_yolov5v2.generate_metadata(
+        app_name=sly_yolov5v2.app_name,
+        task_id=g.app_session_id,
+        artifacts_folder=remote_artifacts_dir,
+        weights_folder=remote_weights_dir,
+        weights_ext=sly_yolov5v2.weights_ext,
+        project_name=project_info.name,
         task_type=task_type,
         config_path=None,
     )
