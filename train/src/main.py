@@ -84,7 +84,7 @@ api = sly.Api()
 team_id = sly.env.team_id()
 
 sly_yolov5v2 = YOLOv5v2(team_id)
-framework_dir = sly_yolov5v2.framework_dir
+framework_dir = sly_yolov5v2._framework_folder
 
 # if app had started from context menu, one of this has to be set:
 project_id = sly.env.project_id(raise_not_found=False)
