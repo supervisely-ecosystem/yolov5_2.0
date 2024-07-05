@@ -12,7 +12,7 @@
   "poster": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/eea6188c-ea1e-474d-b588-9ac5f6bc2685",
   "icon": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/8bc724ef-f9cd-4cba-a192-6032b3f0293b",
   "icon_cover": true,
-  "docker_image": "supervisely/yolov5_v2:1.0.2",
+  "docker_image": "supervisely/yolov5_v2:1.0.3",
   "instance_version": "6.9.3",
   "entrypoint": "python -m uvicorn src.main:app --app-dir ./train --host 0.0.0.0 --port 8000 --ws websockets",
   "task_location": "workspace_tasks",
