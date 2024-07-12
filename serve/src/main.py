@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from dotenv import load_dotenv
 from src.models import models as yolov5_models
+from src.workflow import Workflow
 from ultralytics import YOLO
 
 import supervisely as sly
@@ -186,14 +187,20 @@ m = YOLOv5Model(
         root_source_path, "serve", "custom_settings.yaml"
     ),
 )
-
+workflow = Workflow(m.api)
 if sly.is_production():
     m.serve()
+    # -------------------------------------- Add Workflow Input -------------------------------------- #    
+    workflow.add_input(m.get_params_from_gui())
+    # ----------------------------------------------- - ---------------------------------------------- #
 else:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
     deploy_params = m.get_params_from_gui()
     m.load_model(**deploy_params)
+    # -------------------------------------- Add Workflow Input -------------------------------------- #    
+    workflow.add_input(deploy_params)
+    # ----------------------------------------------- - ---------------------------------------------- #
     image_path = "./demo_data/image_01.jpg"
     settings = {
         "conf": 0.25,
