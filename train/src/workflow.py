@@ -49,10 +49,9 @@ class Workflow:
             if project_version_id is None:
                 project_version_id = project_info.version.get("id", None) if project_info.version else None
             self.api.app.workflow.add_input_project(project_info.id, version_id=project_version_id)
-            file_info = False
             if weight_file:
                 self.api.app.workflow.add_input_file(weight_file, model_weight=True)
-            sly.logger.debug(f"Workflow Input: Project ID - {project_info.id}, Project Version ID - {project_version_id}, Input File - {True if file_info else False}")
+            sly.logger.debug(f"Workflow Input: Project ID - {project_info.id}, Project Version ID - {project_version_id}, Input File - {True if weight_file else False}")
         except Exception as e:
             sly.logger.error(f"Failed to add input to the workflow: {e}")
 
