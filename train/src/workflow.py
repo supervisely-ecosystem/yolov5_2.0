@@ -57,10 +57,16 @@ class Workflow:
             sly.logger.error(f"Failed to add input to the workflow: {e}")
 
     @check_compatibility
-    def add_output(self, best_file_path: str, weights_type: str, app_url: str):
+    def add_output(self, team_files_dir: str, app_url: str, weights_type: str = ''):
         try:
-            file_info = self.api.file.get_info_by_path(sly.env.team_id(), best_file_path)            
-            if file_info:
+            weights_team_files_dir = os.path.join(team_files_dir, "weights")
+            file_infos = self.api.file.list(sly.env.team_id(), weights_team_files_dir, return_type="fileinfo")
+            best_file_info = None
+            for file_info in file_infos:
+                if "best" in file_info.name:
+                    best_file_info = file_info
+                    break
+            if best_file_info:
                 if weights_type == "Custom models":
                     model_name = "Custom Model"
                 else:
@@ -81,12 +87,12 @@ class Workflow:
                         "backgroundColor": "#FFE8BE"
                     },
                     "title": "<h4>Checkpoints</h4>",
-                    "mainLink": {"url": f"/files/{file_info.id}/true", "title": "Open Folder"}
+                    "mainLink": {"url": f"/files/{best_file_info.id}/true", "title": "Open Folder"}
                     }
                 }
-                sly.logger.debug(f"Workflow Output: Best file path - {best_file_path}, Best file name - {file_info.name}, App URL - {app_url}")
+                sly.logger.debug(f"Workflow Output: Best file path - {best_file_info.path}, Best file name - {best_file_info.name}, App URL - {app_url}")
                 sly.logger.debug(f"Workflow Output: meta \n    {meta}")
-                self.api.app.workflow.add_output_file(file_info, model_weight=True, meta=meta)
+                self.api.app.workflow.add_output_file(best_file_info, model_weight=True, meta=meta)
             else:
                 sly.logger.debug(f"File with the best weighs not found in Team Files. Cannot set workflow output.")
         except Exception as e:

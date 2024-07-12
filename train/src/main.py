@@ -1194,10 +1194,6 @@ def start_training():
     with open(app_link_path, "w") as text_file:
         print(app_url, file=text_file)
 
-    # -------------------------------------- Add Workflow Output ------------------------------------- #
-    workflow.add_output(new_best_filepath, weights_type, app_url)
-    # ----------------------------------------------- - ---------------------------------------------- #
-
     # upload training artifacts to team files
     remote_artifacts_dir = os.path.join(
         framework_dir, project_info.name, str(g.app_session_id)
@@ -1232,6 +1228,11 @@ def start_training():
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
+
+    # -------------------------------------- Add Workflow Output ------------------------------------- #
+    workflow.add_output(remote_artifacts_dir, app_url, weights_type)
+    # ----------------------------------------------- - ---------------------------------------------- #
+
     file_info = api.file.get_info_by_path(
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
@@ -1446,6 +1447,11 @@ def auto_train(request: Request):
                 progress=progress_cb,
             )
         model = YOLO(weights_dst_path)
+
+    # -------------------------------------- Add Workflow Input -------------------------------------- #
+    project_info = api.project.get_info_by_id(project_id)
+    workflow.add_input(project_info)
+    # ----------------------------------------------- - ---------------------------------------------- #
 
     # add callbacks to model
     model.add_callback("on_train_batch_end", on_train_batch_end)
@@ -1728,6 +1734,11 @@ def auto_train(request: Request):
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
+    
+    # -------------------------------------- Add Workflow Output ------------------------------------- #
+    workflow.add_output(team_files_dir, app_url)
+    # ----------------------------------------------- - ---------------------------------------------- #
+
     file_info = api.file.get_info_by_path(
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
