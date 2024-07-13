@@ -55,6 +55,7 @@ from src.metrics_watcher import Watcher
 from src.sly_to_yolov8 import transform
 from src.utils import verify_train_val_sets
 from src.dataset_cache import download_project
+from src.workflow import Workflow
 
 
 # function for updating global variables
@@ -82,6 +83,8 @@ load_dotenv("local.env")
 load_dotenv(os.path.expanduser("~/supervisely.env"))
 api = sly.Api()
 team_id = sly.env.team_id()
+
+workflow = Workflow(api)
 
 sly_yolov5v2 = YOLOv5v2(team_id)
 framework_dir = sly_yolov5v2.framework_folder
@@ -939,6 +942,15 @@ def start_training():
         pretrained = True
         model = YOLO(weights_dst_path)
 
+    # -------------------------------------- Add Workflow Input -------------------------------------- #
+    if weights_type == "Custom models":
+        weight_file = file_info
+    else:
+        weight_file = None
+
+    workflow.add_input(project_info, weight_file)
+    # ----------------------------------------------- - ---------------------------------------------- #
+
     # add callbacks to model
     model.add_callback("on_train_batch_end", on_train_batch_end)
 
@@ -1216,6 +1228,11 @@ def start_training():
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
+
+    # -------------------------------------- Add Workflow Output ------------------------------------- #
+    workflow.add_output(remote_artifacts_dir, app_url, weights_type)
+    # ----------------------------------------------- - ---------------------------------------------- #
+
     file_info = api.file.get_info_by_path(
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
@@ -1430,6 +1447,11 @@ def auto_train(request: Request):
                 progress=progress_cb,
             )
         model = YOLO(weights_dst_path)
+
+    # -------------------------------------- Add Workflow Input -------------------------------------- #
+    project_info = api.project.get_info_by_id(project_id)
+    workflow.add_input(project_info)
+    # ----------------------------------------------- - ---------------------------------------------- #
 
     # add callbacks to model
     model.add_callback("on_train_batch_end", on_train_batch_end)
@@ -1712,6 +1734,11 @@ def auto_train(request: Request):
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
+    
+    # -------------------------------------- Add Workflow Output ------------------------------------- #
+    workflow.add_output(team_files_dir, app_url)
+    # ----------------------------------------------- - ---------------------------------------------- #
+
     file_info = api.file.get_info_by_path(
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
