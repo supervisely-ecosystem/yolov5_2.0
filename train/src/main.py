@@ -912,7 +912,10 @@ def start_training():
                 )
             model = YOLO(weights_dst_path)
         else:
-            model_filename = selected_model.lower() + ".yaml"
+            if "6" in selected_model:
+                model_filename = "yolov5-p6.yaml"
+            else:
+                model_filename = "yolov5.yaml"
             pretrained = False
             model = YOLO(model_filename)
     elif weights_type == "Custom models":
@@ -1734,7 +1737,7 @@ def auto_train(request: Request):
             remote_dir=remote_artifacts_dir,
             progress_size_cb=progress_cb,
         )
-    
+
     # -------------------------------------- Add Workflow Output ------------------------------------- #
     workflow.add_output(team_files_dir, app_url)
     # ----------------------------------------------- - ---------------------------------------------- #
