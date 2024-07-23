@@ -4,7 +4,14 @@ import supervisely as sly
 def check_compatibility(func):
     def wrapper(self, *args, **kwargs):
         if self.is_compatible is None:
-            self.is_compatible = self.check_instance_ver_compatibility()
+            try:
+                self.is_compatible = self.check_instance_ver_compatibility()
+            except Exception as e:
+                sly.logger.error(
+                    "Can not check compatibility with Supervisely instance. "
+                    f"Workflow features will be disabled. Error: {repr(e)}"
+                )
+                self.is_compatible = False
         if not self.is_compatible:
             return
         return func(self, *args, **kwargs)
@@ -36,6 +43,7 @@ class Workflow:
     def add_input(self, deploy_params: dict):
         try:
             model_source = deploy_params.get("model_source")
+            sly.logger.debug(f"Deploy Params - {deploy_params}")
             if model_source == "Custom models":
                 checkpoint_url = deploy_params.get("checkpoint_url")
                 meta = {"customNodeSettings": {"title": "<h4>Serve Custom Model</h4>"}}
@@ -45,7 +53,7 @@ class Workflow:
                 else:
                     sly.logger.debug(f"Checkpoint {checkpoint_url} not found in Team Files. Cannot set workflow input")
         except Exception as e:
-            sly.logger.error(f"Failed to add input to the workflow: {e}")
+            sly.logger.debug(f"Failed to add input to the workflow: {repr(e)}")
             
     @check_compatibility
     def add_output(self):
