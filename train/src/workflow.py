@@ -49,7 +49,7 @@ class Workflow:
                 project_info, "Train YOLO v5 2.0", f"This backup was created automatically by Supervisely before the Train YOLO task with ID: {self.api.task_id}"
             )
         except Exception as e:
-            sly.logger.error(f"Failed to create a project version: {e}")
+            sly.logger.warning(f"Failed to create a project version: {repr(e)}")
             project_version_id = None
             
         try:
@@ -60,7 +60,7 @@ class Workflow:
                 self.api.app.workflow.add_input_file(weight_file, model_weight=True)
             sly.logger.debug(f"Workflow Input: Project ID - {project_info.id}, Project Version ID - {project_version_id}, Input File - {True if weight_file else False}")
         except Exception as e:
-            sly.logger.error(f"Failed to add input to the workflow: {e}")
+            sly.logger.debug(f"Failed to add input to the workflow: {repr(e)}")
 
     @check_compatibility
     def add_output(self, team_files_dir: str, app_url: str, weights_type: str = ''):
@@ -102,4 +102,4 @@ class Workflow:
             else:
                 sly.logger.debug(f"File with the best weighs not found in Team Files. Cannot set workflow output.")
         except Exception as e:
-            sly.logger.error(f"Failed to add output to the workflow: {e}")
+            sly.logger.debug(f"Failed to add output to the workflow: {repr(e)}")
