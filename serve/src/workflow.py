@@ -43,6 +43,7 @@ class Workflow:
     def add_input(self, deploy_params: dict):
         try:
             model_source = deploy_params.get("model_source")
+            sly.logger.debug(f"Model Source - {model_source}")
             if model_source == "Custom models":
                 checkpoint_url = deploy_params.get("checkpoint_url")
                 meta = {"customNodeSettings": {"title": "<h4>Serve Custom Model</h4>"}}
