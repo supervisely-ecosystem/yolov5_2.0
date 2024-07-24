@@ -15,25 +15,12 @@ from supervisely.app.widgets import (
 )
 from supervisely.nn.prediction_dto import PredictionBBox
 from supervisely.nn.artifacts.yolov5 import YOLOv5v2
-from supervisely.app.content import get_data_dir
-
-import supervisely.nn.inference.gui as GUI
-from supervisely.nn.inference.inference import (
-    LOAD_ON_DEVICE_DECORATOR, 
-    LOAD_MODEL_DECORATOR, 
-    add_callback, 
-    Inference, 
-    InferenceImageCache, 
-    ThreadPoolExecutor, 
-    env,
-)
-from supervisely.task.progress import Progress
 
 try:
-    from typing import Literal, Union, Optional
+    from typing import Literal
 except ImportError:
     # for compatibility with python 3.7
-    from typing_extensions import Literal, Union, Optional
+    from typing_extensions import Literal
 
 from typing import Any, Dict, List
 
