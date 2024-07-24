@@ -15,12 +15,15 @@ from supervisely.app.widgets import (
 )
 from supervisely.nn.prediction_dto import PredictionBBox
 from supervisely.nn.artifacts.yolov5 import YOLOv5v2
+import supervisely.nn.inference.gui as GUI
+
+from supervisely.task.progress import Progress
 
 try:
-    from typing import Literal
+    from typing import Literal, Union
 except ImportError:
     # for compatibility with python 3.7
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Union
 
 from typing import Any, Dict, List
 
@@ -34,6 +37,25 @@ team_id = sly.env.team_id()
 
 
 class YOLOv5Model(sly.nn.inference.ObjectDetection):
+    def __init__(self, *args, **kwargs):
+        super(YOLOv5Model, self).__init__(*args, **kwargs)
+        if self._use_gui:
+            def on_serve_callback(gui: Union[GUI.InferenceGUI, GUI.ServingGUI]):
+                Progress("Deploying model ...", 1)
+
+                if isinstance(self.gui, GUI.ServingGUI):
+                    deploy_params = self.get_params_from_gui()
+                    # -------------------------------------- Add Workflow Input -------------------------------------- #    
+                    workflow.add_input(deploy_params)
+                    # ----------------------------------------------- - ---------------------------------------------- #
+                    self.load_model(**deploy_params)
+                    self.update_gui(self._model_served)
+                else:  # GUI.InferenceGUI
+                    device = gui.get_device()
+                    self.load_on_device(self._model_dir, device)
+                gui.show_deployed_model_info(self)
+            self.gui.on_serve_callbacks.append(on_serve_callback)
+
     def initialize_custom_gui(self):
         """Create custom GUI layout for model selection. This method is called once when the application is started."""
         self.pretrained_models_table = PretrainedModelsSelector(yolov5_models)
@@ -190,11 +212,7 @@ m = YOLOv5Model(
 )
 workflow = Workflow(m.api)
 if sly.is_production():
-    m.serve()
-    sly.logger.debug(m._user_layout.get_active_tab())
-    # -------------------------------------- Add Workflow Input -------------------------------------- #    
-    workflow.add_input(m.get_params_from_gui())
-    # ----------------------------------------------- - ---------------------------------------------- #
+    m.serve()    
 else:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
