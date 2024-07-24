@@ -112,7 +112,7 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
                 dst_path=local_weights_path,
             )
             # -------------------------------------- Add Workflow Input -------------------------------------- #    
-            workflow.add_input(deploy_params)
+            workflow.add_input(model_source, checkpoint_url)
             # ----------------------------------------------- - ---------------------------------------------- #
         self.model = YOLO(local_weights_path)
         if device.startswith("cuda"):
