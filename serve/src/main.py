@@ -58,6 +58,7 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
 
     def get_params_from_gui(self) -> dict:
         model_source = self.model_source_tabs.get_active_tab()
+        sly.logger.debug(f"Model source: {model_source}")
         self.device = self.gui.get_device()
         if model_source == "Pretrained models":
             model_params = self.pretrained_models_table.get_selected_model_params()
