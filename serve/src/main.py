@@ -191,6 +191,7 @@ m = YOLOv5Model(
 workflow = Workflow(m.api)
 if sly.is_production():
     m.serve()
+    sly.logger.debug(m._user_layout.get_active_tab())
     # -------------------------------------- Add Workflow Input -------------------------------------- #    
     workflow.add_input(m.get_params_from_gui())
     # ----------------------------------------------- - ---------------------------------------------- #
