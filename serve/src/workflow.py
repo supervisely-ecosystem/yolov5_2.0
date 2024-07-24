@@ -42,7 +42,7 @@ class Workflow:
         return True
 
     @check_compatibility
-    def add_input(self, deploy_params: dict):
+    def add_input(self, model_source: str, checkpoint_url: str):
         try:
             if self.is_model_weight_added:
                 sly.logger.info(
@@ -51,10 +51,8 @@ class Workflow:
                     "Check logs to see what model was used for serving."
                     )
                 return
-            model_source = deploy_params.get("model_source")
-            sly.logger.debug(f"Deploy Params - {deploy_params}")
+            sly.logger.debug(f"Workflow Input: Model source - {model_source}")
             if model_source == "Custom models":
-                checkpoint_url = deploy_params.get("checkpoint_url")
                 meta = {"customNodeSettings": {"title": "<h4>Serve Custom Model</h4>"}}
                 sly.logger.debug(f"Workflow Input: Checkpoint URL - {checkpoint_url}")
                 if self.api.file.exists(sly.env.team_id(), checkpoint_url):
