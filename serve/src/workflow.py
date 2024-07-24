@@ -1,4 +1,5 @@
 import supervisely as sly
+import os
 
 
 def check_compatibility(func):
@@ -23,6 +24,7 @@ class Workflow:
     def __init__(self, api: sly.Api, min_instance_version: str = None):
         self.is_compatible = None
         self.api = api
+        self.is_model_weight_added = False
         self._min_instance_version = (
             "6.9.31" if min_instance_version is None else min_instance_version
         )
@@ -42,6 +44,8 @@ class Workflow:
     @check_compatibility
     def add_input(self, deploy_params: dict):
         try:
+            if self.is_model_weight_added:
+                return
             model_source = deploy_params.get("model_source")
             sly.logger.debug(f"Deploy Params - {deploy_params}")
             if model_source == "Custom models":
@@ -49,7 +53,12 @@ class Workflow:
                 meta = {"customNodeSettings": {"title": "<h4>Serve Custom Model</h4>"}}
                 sly.logger.debug(f"Workflow Input: Checkpoint URL - {checkpoint_url}")
                 if self.api.file.exists(sly.env.team_id(), checkpoint_url):
-                    self.api.app.workflow.add_input_file(checkpoint_url, model_weight=True, meta=meta)
+                    customization_file = os.path.join(os.path.dirname(checkpoint_url), "workflow.json")
+                    if self.api.file.exists(sly.env.team_id(), customization_file):
+                        meta["customRelationSettings"] = self.api.file.get_json_file_content(sly.env.team_id(), customization_file)
+                    response = self.api.app.workflow.add_input_file(checkpoint_url, model_weight=True, meta=meta)
+                    if response.get("id", None) is not None:
+                        self.is_model_weight_added = True
                 else:
                     sly.logger.debug(f"Checkpoint {checkpoint_url} not found in Team Files. Cannot set workflow input")
         except Exception as e:
