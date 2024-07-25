@@ -34,6 +34,7 @@ team_id = sly.env.team_id()
 
 
 class YOLOv5Model(sly.nn.inference.ObjectDetection):
+
     def initialize_custom_gui(self):
         """Create custom GUI layout for model selection. This method is called once when the application is started."""
         self.pretrained_models_table = PretrainedModelsSelector(yolov5_models)
@@ -110,6 +111,9 @@ class YOLOv5Model(sly.nn.inference.ObjectDetection):
                 src_path=checkpoint_url,
                 dst_path=local_weights_path,
             )
+            # -------------------------------------- Add Workflow Input -------------------------------------- #    
+            workflow.add_input(model_source, checkpoint_url)
+            # ----------------------------------------------- - ---------------------------------------------- #
         self.model = YOLO(local_weights_path)
         if device.startswith("cuda"):
             if device == "cuda":
@@ -190,17 +194,11 @@ m = YOLOv5Model(
 workflow = Workflow(m.api)
 if sly.is_production():
     m.serve()
-    # -------------------------------------- Add Workflow Input -------------------------------------- #    
-    workflow.add_input(m.get_params_from_gui())
-    # ----------------------------------------------- - ---------------------------------------------- #
 else:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
     deploy_params = m.get_params_from_gui()
     m.load_model(**deploy_params)
-    # -------------------------------------- Add Workflow Input -------------------------------------- #    
-    workflow.add_input(deploy_params)
-    # ----------------------------------------------- - ---------------------------------------------- #
     image_path = "./demo_data/image_01.jpg"
     settings = {
         "conf": 0.25,

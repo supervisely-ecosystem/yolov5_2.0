@@ -2,7 +2,7 @@
 
 import supervisely as sly
 import os
-
+import tempfile
 
 def check_compatibility(func):
     def wrapper(self, *args, **kwargs):
@@ -99,6 +99,16 @@ class Workflow:
                 sly.logger.debug(f"Workflow Output: Best file path - {best_file_info.path}, Best file name - {best_file_info.name}, App URL - {app_url}")
                 sly.logger.debug(f"Workflow Output: meta \n    {meta}")
                 self.api.app.workflow.add_output_file(best_file_info, model_weight=True, meta=meta)
+                with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as temp_file:
+                    temp_file_path = temp_file.name
+                    sly.json.dump_json_file(meta["customRelationSettings"], temp_file_path)
+                    file_info = self.api.file.upload(sly.env.team_id(),
+                                        src=temp_file_path,
+                                        dst=f"{weights_team_files_dir}/workflow.json")
+                    if file_info:
+                        sly.logger.debug(f"Workflow Output: Workflow customization file uploaded successfully")
+                    else:
+                        sly.logger.debug(f"Workflow Output: Failed to upload workflow customization file")
             else:
                 sly.logger.debug(f"File with the best weighs not found in Team Files. Cannot set workflow output.")
         except Exception as e:

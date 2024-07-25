@@ -1,4 +1,5 @@
 import supervisely as sly
+import os
 
 
 def check_compatibility(func):
@@ -23,6 +24,7 @@ class Workflow:
     def __init__(self, api: sly.Api, min_instance_version: str = None):
         self.is_compatible = None
         self.api = api
+        self.is_model_weight_added = False
         self._min_instance_version = (
             "6.9.31" if min_instance_version is None else min_instance_version
         )
@@ -40,16 +42,42 @@ class Workflow:
         return True
 
     @check_compatibility
-    def add_input(self, deploy_params: dict):
+    def add_input(self, model_source: str, checkpoint_url: str):
         try:
-            model_source = deploy_params.get("model_source")
-            sly.logger.debug(f"Deploy Params - {deploy_params}")
+            if self.is_model_weight_added:
+                sly.logger.info(
+                    "Workflow input is already added. "
+                    "Adding input again is not supported. "
+                    "Check logs to see what model was used for serving."
+                    )
+                return
+            sly.logger.debug(f"Workflow Input: Model source - {model_source}")
             if model_source == "Custom models":
-                checkpoint_url = deploy_params.get("checkpoint_url")
                 meta = {"customNodeSettings": {"title": "<h4>Serve Custom Model</h4>"}}
                 sly.logger.debug(f"Workflow Input: Checkpoint URL - {checkpoint_url}")
                 if self.api.file.exists(sly.env.team_id(), checkpoint_url):
-                    self.api.app.workflow.add_input_file(checkpoint_url, model_weight=True, meta=meta)
+                    customization_file = os.path.join(os.path.dirname(checkpoint_url), "workflow.json")
+                    if self.api.file.exists(sly.env.team_id(), customization_file):
+                        meta["customRelationSettings"] = self.api.file.get_json_file_content(sly.env.team_id(), customization_file)
+                        sly.logger.debug(f"Workflow Input: Customization File found and used to update workflow meta")
+                    else:
+                        file_info = self.api.file.get_info_by_path(sly.env.team_id(), checkpoint_url)
+                        meta["customRelationSettings"] = {
+                                                            "icon": {
+                                                                "icon": "zmdi-folder",
+                                                                "color": "#FFA500",
+                                                                "backgroundColor": "#FFE8BE"
+                                                            },
+                                                            "title": "<h4>Checkpoints</h4>",
+                                                            "mainLink": {
+                                                                "url": f"/files/{file_info.id}/true",
+                                                                "title": "Open Folder"
+                                                            }
+                                                        }
+                        sly.logger.debug(f"Workflow Input: Customization File not found. Workflow meta updated with default settings")
+                    response = self.api.app.workflow.add_input_file(checkpoint_url, model_weight=True, meta=meta)
+                    if response.get("id", None) is not None:
+                        self.is_model_weight_added = True
                 else:
                     sly.logger.debug(f"Checkpoint {checkpoint_url} not found in Team Files. Cannot set workflow input")
         except Exception as e:
