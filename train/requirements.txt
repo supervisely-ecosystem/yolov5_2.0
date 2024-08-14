@@ -1,6 +1,7 @@
 # git+https://github.com/supervisely/supervisely.git@some-test-branch
 
-supervisely==6.73.138
+# supervisely==6.73.138
+git+https://github.com/supervisely/supervisely.git@add-workflow-compatibility-check
 ultralytics==8.0.112
 --extra-index-url https://download.pytorch.org/whl/cu113
 torch==1.10.1+cu113
