@@ -7,6 +7,7 @@ import threading
 from functools import partial
 from pathlib import Path
 from urllib.request import urlopen
+from dataclasses import asdict
 
 import numpy as np
 import pandas as pd
@@ -17,7 +18,7 @@ import torch
 import yaml
 from dotenv import load_dotenv
 from fastapi import Request, Response
-from supervisely.nn.artifacts.yolov5 import YOLOv5v2
+from supervisely.nn.artifacts.artifacts import TrainInfo
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -81,13 +82,12 @@ def update_globals(new_dataset_ids):
 # authentication
 load_dotenv("local.env")
 load_dotenv(os.path.expanduser("~/supervisely.env"))
+
 api = sly.Api()
 team_id = sly.env.team_id()
 
 workflow = Workflow(api)
-
-sly_yolov5v2 = YOLOv5v2(team_id)
-framework_dir = sly_yolov5v2.framework_folder
+framework_dir = g.sly_yolov5v2.framework_folder
 
 # if app had started from context menu, one of this has to be set:
 project_id = sly.env.project_id(raise_not_found=False)
@@ -860,6 +860,7 @@ def start_training():
     train_val_split._project_fs = sly.Project(g.project_dir, sly.OpenMode.READ)
     train_set, val_set = train_val_split.get_splits()
     verify_train_val_sets(train_set, val_set)
+    g.train_size, g.val_size = len(train_set), len(val_set)
     # convert dataset from supervisely to yolo format
     if os.path.exists(g.yolov5_project_dir):
         sly.fs.clean_dir(g.yolov5_project_dir)
@@ -1201,7 +1202,7 @@ def start_training():
     remote_artifacts_dir = os.path.join(
         framework_dir, project_info.name, str(g.app_session_id)
     )
-    remote_weights_dir = sly_yolov5v2.get_weights_path(remote_artifacts_dir)
+    remote_weights_dir = g.sly_yolov5v2.get_weights_path(remote_artifacts_dir)
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor.bytes_read
@@ -1240,16 +1241,22 @@ def start_training():
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
     # generate metadata file
-    sly_yolov5v2.generate_metadata(
-        app_name=sly_yolov5v2.app_name,
+    g.sly_yolov5v2_generated_metadata = g.sly_yolov5v2.generate_metadata(
+        app_name=g.sly_yolov5v2.app_name,
         task_id=g.app_session_id,
         artifacts_folder=remote_artifacts_dir,
         weights_folder=remote_weights_dir,
-        weights_ext=sly_yolov5v2.weights_ext,
+        weights_ext=g.sly_yolov5v2.weights_ext,
         project_name=project_info.name,
         task_type=task_type,
         config_path=None,
     )
+
+    try:
+        sly.logger.info("Creating experiment info")
+        create_experiment("YOLOv5 2.0", remote_artifacts_dir, local_artifacts_dir)
+    except Exception as e:
+        sly.logger.error(f"Couldn't create experiment, this training session will not appear in the experiments table. Error: {e}")
 
     train_artifacts_folder.set(file_info)
     # finish training
@@ -1394,6 +1401,7 @@ def auto_train(request: Request):
     train_val_split._project_fs = sly.Project(g.project_dir, sly.OpenMode.READ)
     train_set, val_set = train_val_split.get_splits()
     verify_train_val_sets(train_set, val_set)
+    g.train_size, g.val_size = len(train_set), len(val_set)
     # convert dataset from supervisely to yolo format
     if os.path.exists(g.yolov5_project_dir):
         sly.fs.clean_dir(g.yolov5_project_dir)
@@ -1707,7 +1715,7 @@ def auto_train(request: Request):
     remote_artifacts_dir = os.path.join(
         framework_dir, project_info.name, str(g.app_session_id)
     )
-    remote_weights_dir = sly_yolov5v2.get_weights_path(remote_artifacts_dir)
+    remote_weights_dir = g.sly_yolov5v2.get_weights_path(remote_artifacts_dir)
 
     def upload_monitor(monitor, api: sly.Api, progress: sly.Progress):
         value = monitor.bytes_read
@@ -1746,16 +1754,22 @@ def auto_train(request: Request):
         sly.env.team_id(), team_files_dir + "/results.csv"
     )
     # generate metadata file
-    sly_yolov5v2.generate_metadata(
-        app_name=sly_yolov5v2.app_name,
+    g.sly_yolov5v2_generated_metadata = g.sly_yolov5v2.generate_metadata(
+        app_name=g.sly_yolov5v2.app_name,
         task_id=g.app_session_id,
         artifacts_folder=remote_artifacts_dir,
         weights_folder=remote_weights_dir,
-        weights_ext=sly_yolov5v2.weights_ext,
+        weights_ext=g.sly_yolov5v2.weights_ext,
         project_name=project_info.name,
         task_type=task_type,
         config_path=None,
     )
+
+    try:
+        sly.logger.info("Creating experiment info")
+        create_experiment("YOLOv5 2.0", remote_artifacts_dir, local_artifacts_dir)
+    except Exception as e:
+        sly.logger.error(f"Couldn't create experiment, this training session will not appear in the experiments table. Error: {e}")
 
     train_artifacts_folder.set(file_info)
     # finish training
@@ -1774,3 +1788,39 @@ def auto_train(request: Request):
     # set task output
     sly.output.set_directory(remote_artifacts_dir)
     return {"result": "successfully finished automatic training session"}
+
+def create_experiment(
+    model_name,
+    remote_dir,
+    local_dir,
+    report_id=None,
+    eval_metrics=None,
+    primary_metric_name=None,
+):
+    train_info = TrainInfo(**g.sly_yolov5v2_generated_metadata)
+    experiment_info = g.sly_yolov5v2.convert_train_to_experiment_info(train_info)
+    experiment_info.experiment_name = (
+        f"{g.app_session_id} {project_info.name} {model_name}"
+    )
+    experiment_info.model_name = model_name
+    experiment_info.framework_name = f"{g.sly_yolov5v2.framework_name}"
+    experiment_info.train_size = g.train_size
+    experiment_info.val_size = g.val_size
+    experiment_info.evaluation_report_id = report_id
+    experiment_info.experiment_report_id = None
+    if report_id is not None:
+        experiment_info.evaluation_report_link = f"/model-benchmark?id={str(report_id)}"
+    experiment_info.evaluation_metrics = eval_metrics
+
+    experiment_info_json = asdict(experiment_info)
+    experiment_info_json["project_preview"] = project_info.image_preview_url
+    experiment_info_json["primary_metric"] = primary_metric_name
+
+    api.task.set_output_experiment(g.app_session_id, experiment_info_json)
+    experiment_info_json.pop("project_preview")
+    experiment_info_json.pop("primary_metric")
+
+    experiment_info_path = os.path.join(local_dir, "experiment_info.json")
+    remote_experiment_info_path = os.path.join(remote_dir, "experiment_info.json")
+    sly.json.dump_json_file(experiment_info_json, experiment_info_path)
+    api.file.upload(team_id, experiment_info_path, remote_experiment_info_path)
