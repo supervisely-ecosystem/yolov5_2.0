@@ -17,7 +17,7 @@ import supervisely.io.env as env
 import supervisely.task.progress as sly_progress
 import time
 
-# tqdm path for compatibility with supervisely==6.73.418
+# tqdm patch for compatibility with supervisely==6.73.418
 defaults = [
     ("mininterval", 0.1),
     ("maxinterval", 10.0),
@@ -27,6 +27,18 @@ defaults = [
     ("last_print_t", time.time()),
     ("last_print_n", 0),
     ("n", 0),
+    ("_time", time.time),
+    ("smoothing", 0.3),
+    ("dynamic_ncols", False),
+    ("ascii", None),
+    ("disable", True),
+    ("unit", "it"),
+    ("unit_scale", False),
+    ("unit_divisor", 1000),
+    ("ncols", None),
+    ("pos", 0),
+    ("postfix", None),
+    ("colour", None),
 ]
 for name, value in defaults:
     if not hasattr(sly_progress.tqdm_sly, name):
