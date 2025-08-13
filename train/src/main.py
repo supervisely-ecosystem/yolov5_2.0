@@ -14,6 +14,13 @@ import pandas as pd
 import ruamel.yaml
 import supervisely as sly
 import supervisely.io.env as env
+import supervisely.task.progress as sly_progress
+
+# Ensure tqdm_sly
+for _name, _value in [("mininterval", 0.1), ("maxinterval", 10.0), ("miniters", 1)]:
+    if not hasattr(sly_progress.tqdm_sly, _name):
+        setattr(sly_progress.tqdm_sly, _name, _value)
+
 import torch
 import yaml
 from dotenv import load_dotenv
