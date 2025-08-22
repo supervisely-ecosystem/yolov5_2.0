@@ -17,7 +17,7 @@ import supervisely.io.env as env
 import supervisely.task.progress as sly_progress
 import time
 
-# tqdm patch for compatibility with supervisely==6.73.418
+# tqdm patch for compatibility with supervisely==6.73.424
 defaults = [
     ("mininterval", 0.1),
     ("maxinterval", 10.0),

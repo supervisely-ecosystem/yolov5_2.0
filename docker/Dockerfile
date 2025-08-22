@@ -10,6 +10,6 @@ RUN pip3 install torch==1.10.1+cu113 --extra-index-url https://download.pytorch.
 RUN pip3 install torchvision==0.11.2+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
 RUN pip3 install ultralytics==8.0.112
 
-RUN python3 -m pip install supervisely==6.73.418
+RUN python3 -m pip install supervisely==6.73.424
 
-LABEL python_sdk_version=6.73.418
+LABEL python_sdk_version=6.73.424
