@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import supervisely as sly
+from supervisely.nn.artifacts.yolov5 import YOLOv5v2
 from dotenv import load_dotenv
 
 load_dotenv("local.env")
@@ -26,3 +27,8 @@ if sly.is_production():
 else:
     train_params_filepath = "training_params.yml"  # for debug
 train_counter, val_counter = 0, 0
+
+team_id = sly.env.team_id()
+sly_yolov5v2 = YOLOv5v2(team_id)
+sly_yolov5v2_generated_metadata = None
+train_size, val_size = None, None
