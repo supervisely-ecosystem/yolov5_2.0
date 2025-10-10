@@ -13,7 +13,7 @@
   <a href="#Acknowledgment">Acknowledgment</a>
 </p>
 
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../supervisely-ecosystem/yolov5_2.0/train)
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../../supervisely-ecosystem/yolov5_2.0/train)
 [![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/yolov5_2.0)
 [![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/yolov5_2.0/train.png)](https://supervisely.com)
@@ -37,7 +37,7 @@ You can use your trained models outside Supervisely platform without any depende
 
 # Related apps
 
-- [Serve YOLOv5 2.0](../../../../supervisely-ecosystem/yolov5_2.0/serve) - app allows to deploy YOLOv8 model as REST API service.   
+- [Serve YOLOv5 2.0](../../../../../supervisely-ecosystem/yolov5_2.0/serve) - app allows to deploy YOLOv8 model as REST API service.   
     <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/yolov5_2.0/serve" src="https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/90815cf8-7071-4215-9fe0-d9f1c4050e57" height="70px" margin-bottom="20px"/>
     
 # Screenshot
