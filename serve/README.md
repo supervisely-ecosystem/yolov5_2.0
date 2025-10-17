@@ -54,10 +54,10 @@ If you want to change model specific inference settings while working with the m
 
 # Related apps
 
-- [NN Image Labeling](../../../../supervisely-ecosystem/supervisely-ecosystem%252Fnn-image-labeling%252Fannotation-tool) - integrate any deployed NN to Supervisely Image Labeling UI. Configure inference settings and model output classes. Press `Apply` button (or use hotkey) and detections with their confidences will immediately appear on the image.   
+- [NN Image Labeling](https://ecosystem.supervisely.com/apps/supervisely-ecosystem%252Fnn-image-labeling%252Fannotation-tool) - integrate any deployed NN to Supervisely Image Labeling UI. Configure inference settings and model output classes. Press `Apply` button (or use hotkey) and detections with their confidences will immediately appear on the image.   
     <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/nn-image-labeling/annotation-tool" src="https://i.imgur.com/hYEucNt.png" height="70px" margin-bottom="20px"/>
 
-- [Apply NN to Videos Project](../../../../supervisely-ecosystem/apply-nn-to-videos-project) - app allows to label your videos using served Supervisely models.  
+- [Apply NN to Videos Project](https://ecosystem.supervisely.com/apps/apply-nn-to-videos-project) - app allows to label your videos using served Supervisely models.  
   <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/apply-nn-to-videos-project" src="https://imgur.com/LDo8K1A.png" height="70px" margin-bottom="20px" />
 
 - [Train YOLOv5 2.0](https://ecosystem.supervisely.com/apps/supervisely-ecosystem/yolov5_2.0/train) - app allows to create custom YOLOv5 weights through training process.
