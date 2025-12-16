@@ -1,29 +1,29 @@
 {
-  "name": "Serve YOLOv5 2.0",
-  "type": "app",
-  "version": "2.0.0",
-  "description": "Deploy YOLOv5 2.0 as REST API service",
-  "poster": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/b31718cf-560a-4924-b048-dbfc57748898",
-  "icon": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/35578605-1c8e-4c04-a553-2b530e9fa15d",
-  "icon_cover": true,
-  "categories": [
-    "neural network",
-    "images",
-    "object detection",
-    "serve"
-  ],
-  "need_gpu": false,
-  "gpu": "preferred",
-  "session_tags": [
-    "deployed_nn"
-  ],
-  "community_agent": false,
-  "docker_image": "supervisely/yolov5_v2:1.0.6",
-  "instance_version": "6.15.0",
-  "entrypoint": "python -m uvicorn src.main:m.app --app-dir ./serve --host 0.0.0.0 --port 8000 --ws websockets",
-  "port": 8000,
-  "task_location": "application_sessions",
-  "license": {
-    "type": "AGPL-3.0"
-  }
+    "name": "Serve YOLOv5 2.0",
+    "type": "app",
+    "version": "2.0.0",
+    "description": "Deploy YOLOv5 2.0 as REST API service",
+    "poster": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/b31718cf-560a-4924-b048-dbfc57748898",
+    "icon": "https://github.com/supervisely-ecosystem/yolov5_2.0/assets/115161827/35578605-1c8e-4c04-a553-2b530e9fa15d",
+    "icon_cover": true,
+    "categories": [
+        "neural network",
+        "images",
+        "object detection",
+        "serve"
+    ],
+    "need_gpu": false,
+    "gpu": "preferred",
+    "session_tags": [
+        "deployed_nn"
+    ],
+    "community_agent": false,
+    "docker_image": "supervisely/yolov5_v2:1.0.7",
+    "instance_version": "6.15.35",
+    "entrypoint": "python -m uvicorn src.main:m.app --app-dir ./serve --host 0.0.0.0 --port 8000 --ws websockets",
+    "port": 8000,
+    "task_location": "application_sessions",
+    "license": {
+        "type": "AGPL-3.0"
+    }
 }
