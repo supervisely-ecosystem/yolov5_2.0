@@ -22,7 +22,7 @@ jobs:
     with:
       tag_version: ${{ github.event.inputs.tag_version }}
       dockerfile_path: docker/Dockerfile
-      image_name: "yolov5_2"
+      image_name: "yolov5_v2"
       sdk_version: ${{ github.event.inputs.sdk_version }}
 
   release-branch:
